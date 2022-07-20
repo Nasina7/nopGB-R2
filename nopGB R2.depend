@@ -1,0 +1,33 @@
+# depslib dependency file v1.0
+1658355932 source:/home/zach/cpp_projects/nopGB R2/main.cpp
+	<iostream>
+	"cpu.hpp"
+	"display.hpp"
+	"time.h"
+	<string>
+	<sstream>
+
+1658355693 /home/zach/cpp_projects/nopGB R2/cpu.hpp
+
+1656791130 source:/home/zach/cpp_projects/nopGB R2/scheduler/scheduler.c
+	"scheduler.h"
+	<stdio.h>
+
+1656791124 /home/zach/cpp_projects/nopGB R2/scheduler/scheduler.h
+	<stdint.h>
+	<stdbool.h>
+
+1658355780 source:/home/zach/cpp_projects/nopGB R2/cpu.cpp
+	<iostream>
+	<fstream>
+	"cpu.hpp"
+	<string.h>
+
+1658354967 /home/zach/cpp_projects/nopGB R2/display.hpp
+	<SDL2/SDL.h>
+	"cpu.hpp"
+
+1658355953 source:/home/zach/cpp_projects/nopGB R2/display.cpp
+	"display.hpp"
+	<iostream>
+
