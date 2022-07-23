@@ -1,13 +1,15 @@
 # depslib dependency file v1.0
-1658355932 source:/home/zach/cpp_projects/nopGB R2/main.cpp
+1658619378 source:/home/zach/cpp_projects/nopGB R2/main.cpp
 	<iostream>
 	"cpu.hpp"
 	"display.hpp"
 	"time.h"
 	<string>
 	<sstream>
+	<fstream>
+	"audio.hpp"
 
-1658355693 /home/zach/cpp_projects/nopGB R2/cpu.hpp
+1658612737 /home/zach/cpp_projects/nopGB R2/cpu.hpp
 
 1656791130 source:/home/zach/cpp_projects/nopGB R2/scheduler/scheduler.c
 	"scheduler.h"
@@ -17,17 +19,26 @@
 	<stdint.h>
 	<stdbool.h>
 
-1658355780 source:/home/zach/cpp_projects/nopGB R2/cpu.cpp
+1658612803 source:/home/zach/cpp_projects/nopGB R2/cpu.cpp
 	<iostream>
 	<fstream>
 	"cpu.hpp"
 	<string.h>
 
-1658354967 /home/zach/cpp_projects/nopGB R2/display.hpp
+1658546678 /home/zach/cpp_projects/nopGB R2/display.hpp
 	<SDL2/SDL.h>
 	"cpu.hpp"
 
-1658355953 source:/home/zach/cpp_projects/nopGB R2/display.cpp
+1658617619 source:/home/zach/cpp_projects/nopGB R2/display.cpp
 	"display.hpp"
+	<iostream>
+	<bits/stdc++.h>
+
+1658612905 /home/zach/cpp_projects/nopGB R2/audio.hpp
+	<SDL2/SDL.h>
+	"cpu.hpp"
+
+1658619323 source:/home/zach/cpp_projects/nopGB R2/audio.cpp
+	"audio.hpp"
 	<iostream>
 

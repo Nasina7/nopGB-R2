@@ -2,12 +2,31 @@
 #ifndef CPU_HPP
 #define CPU_HPP
 
+struct MBC1Struct {
+    uint8_t bankNumberLow;
+    bool onSRAM;
+    uint8_t bankNumberHigh;
+    bool bankHighBehavior;
+};
+
+struct MBC3Struct {
+    bool onSRAM;
+    uint8_t bankNumberROM;
+    uint8_t bankNumberRAM;
+    uint8_t rtcLatchState;
+    bool timerExists;
+};
+
 class gbClass {
     public:
         bool runGB;
         uint8_t A, B, C, D, E, F, H, L;
         uint16_t PC, SP;
         uint64_t cyclesScanline;
+        uint64_t cyclesTotal;
+        uint64_t cyclesTotalPrev;
+
+        uint64_t currentTimerDifference;
 
         bool haltMode;
 
@@ -18,29 +37,55 @@ class gbClass {
         uint8_t readRAM(uint16_t location);
         void writeRAM(uint16_t location, uint8_t value);
 
+        uint8_t accessIO(uint8_t port, uint8_t value, bool write);
+
         void setFlagBit(uint8_t index, bool value);
         uint8_t incDec8(uint8_t value, bool subtract, bool modifyFlags);
         uint16_t incDec16(uint8_t upper, uint8_t lower, bool subtract);
 
-        void runInterrupt(uint8_t intNumber);
+        void setIFBit(uint8_t bit);
+
+        void checkInterrupt();
 
         void swapBank(uint8_t sectionNum, uint8_t bankNum);
+        void swapBankOld(uint8_t sectionNum, uint8_t bankNum);
+
+        void runTimer();
+
+        inline uint8_t readVRAM(uint16_t location)
+        {
+            return VRAM[0][location & 0x1FFF];
+        }
+
+        inline uint8_t readOAM(uint16_t location)
+        {
+            // Unsafe, but since this is only used in the renderer, it should be fine.
+            return OAM[location & 0xFF];
+        }
 
 
         // I/O Registers
 
         uint8_t JOYP; // 0xFF00
+        uint8_t JOYPR;
+        uint8_t JOYP2;
         uint8_t SB; // 0xFF01
         uint8_t SC; // 0xFF02
 
         uint8_t DIV; // 0xFF04
-        uint8_t TIMA; // 0xFF05
+        uint16_t TIMA; // 0xFF05
         uint8_t TMA; // 0xFF06
         uint8_t TAC; // 0xFF07
 
         uint8_t IF; // 0xFF0F
 
         // Audio I/O Goes here, It'll be added later
+
+        uint8_t NR10;
+        uint8_t NR11;
+        uint8_t NR12;
+        uint8_t NR13;
+        uint8_t NR14;
 
         uint8_t LCDC; // 0xFF40
         uint8_t STAT; // 0xFF41
@@ -71,13 +116,21 @@ class gbClass {
 
         uint8_t IE; // 0xFFFF
         bool IME;
+
+        uint8_t SRAM[16][0x2000];
     private:
         uint8_t* ROMFILE;
         int romLength;
+        int MBC;
+        void handleMBC(uint16_t location, uint8_t value);
+        bool sramExists;
+        uint8_t sramState;
+        struct MBC1Struct mbc1;
+        struct MBC3Struct mbc3;
 
         uint8_t ROM[2][0x4000]; // This would need to be expanded later
         uint8_t VRAM[8][0x2000];  // This is banked in preperation for GBC support
-        uint8_t SRAM[1][0x2000];
+
         uint8_t WRAM[8][0x1000]; // Bankable in preperation for GBC
         uint8_t OAM[0xA0];
         uint8_t HRAM[0x7F];

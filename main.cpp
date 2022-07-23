@@ -4,8 +4,17 @@
 #include "time.h"
 #include <string>
 #include <sstream>
+#include <fstream>
+#include "audio.hpp"
 
 using namespace std;
+
+/*
+    Todo before 3DS Port:
+        * Implement MBC 5???
+        * Implement Audio
+        * Maybe GBC???
+*/
 
 int main()
 {
@@ -15,8 +24,28 @@ int main()
     gbDisplay display;
 
     display.gb = &gb;
+    audio.gb = &gb;
 
-    gb.loadROM("rom.gb");
+    gb.loadROM("roms/kirby.gb");
+
+    string saveName;
+    saveName += "save/";
+    for(int i = 0x134; i < 0x143; i++)
+    {
+        if(gb.readRAM(i) == 0)
+        {
+            break;
+        }
+        saveName += gb.readRAM(i);
+    }
+    saveName += ".sav";
+
+    ifstream readSav(saveName, std::ifstream::binary);
+    if(readSav)
+    {
+        readSav.read((char*)gb.SRAM, 0x2000 * 16);
+    }
+    readSav.close();
 
     gb.resetGB();
 
@@ -25,6 +54,8 @@ int main()
     {
         return 0;
     }
+
+    audio.sdlAudioInit();
 
     char step;
 
@@ -42,7 +73,7 @@ int main()
         //cout<<"F: 0x"<<std::hex<<(int)gb.F<<endl;
         //cout<<"HL: 0x"<<std::hex<<(int)(gb.H << 8 | gb.L)<<endl;
         //cout<<"OPCODE: 0x"<<std::hex<<(int)gb.readRAM(gb.PC)<<endl;
-        if(gb.PC == 0xC003)
+        if(gb.IE == 1)
         {
             breakpoint = true;
             //cin>>step;
@@ -51,35 +82,39 @@ int main()
         {
             //cin>>step;
         }
-        //if(gb.E == 0xFF || gb.E == 0)
-        //{
-            //cin>>step;
-        //}
+        uint64_t prevCycles = gb.cyclesScanline;
         if(gb.haltMode == false)
         {
             gb.runOpcode();
         }
         else
         {
-            // Hack to make things run faster.  V-Blank is the only thing that can get this emu out of halt
-            gb.cyclesScanline = 456;
-            gb.LY = 143;
-            gb.haltMode = false;
+            gb.cyclesScanline += 4;
         }
+        gb.cyclesTotalPrev = gb.cyclesTotal;
+        gb.cyclesTotal += (gb.cyclesScanline - prevCycles);
+
+        gb.JOYP &= 0xF;
+        gb.JOYP |= (gb.JOYP2 & 0x30);
 
 
-        if(gb.cyclesScanline >= 456)
+        gb.runTimer();
+        gb.checkInterrupt();
+
+
+        if(gb.cyclesScanline >= 456) // New Scanline
         {
+            gb.STAT &= ~0x3;
             gb.LY++;
             gb.cyclesScanline -= 456;
             if(gb.LY == 144)
             {
-                display.renderFullFrame();
-                gb.runInterrupt(0x80);
+
+                gb.setIFBit(0x1);
                 FPS++;
                 if(seconds != time(NULL))
                 {
-                    string windowTitle = "nopGB R2 Speedrun: ";
+                    string windowTitle = "nopGB R2: ";
                     std::stringstream ss;
                     ss << FPS;
                     windowTitle += ss.str();
@@ -89,13 +124,36 @@ int main()
                 }
             }
 
-            if(gb.LY == 153)
+
+            if(gb.LY == 154)
             {
                 gb.LY = 0;
+                //gb.IF &= 0xFE;
+                //display.renderFullFrame();
+                display.handleEvents();
             }
+            if(gb.LY == gb.LYC - 1)
+            {
+                gb.STAT |= 0x6;
+                if(gb.STAT & 0x40)
+                {
+
+                    gb.setIFBit(0x2);
+                }
+            }
+            else
+            {
+                gb.STAT &= ~0x4;
+            }
+            display.renderScanline();
         }
-
-
     }
+
+
+    ofstream writeSav(saveName, std::ifstream::binary);
+
+    writeSav.write((char*)gb.SRAM, 0x2000 * 16);
+    writeSav.close();
+
     return 0;
 }
