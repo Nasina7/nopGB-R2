@@ -146,9 +146,13 @@ void gbClass::resetGB()
     mbc1.onSRAM = false;
 }
 
+#define timingOverride 0
+
 void gbClass::runOpcode()
 {
     uint8_t opcode = readRAM(PC);
+
+    uint64_t prevCycles = cyclesScanline;
 
     switch(opcode)
     {
@@ -450,6 +454,13 @@ void gbClass::runOpcode()
             opUNK(opcode);
         break;
     }
+
+
+    if(timingOverride)
+    {
+        cyclesScanline = prevCycles + 1;
+    }
+
 }
 
 uint16_t gbClass::incDec16(uint8_t upper, uint8_t lower, bool subtract)

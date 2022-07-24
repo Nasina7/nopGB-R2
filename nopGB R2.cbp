@@ -43,6 +43,8 @@
 		<Linker>
 			<Add option="-lSDL2" />
 		</Linker>
+		<Unit filename="audio.cpp" />
+		<Unit filename="audio.hpp" />
 		<Unit filename="cpu.cpp" />
 		<Unit filename="cpu.hpp" />
 		<Unit filename="display.cpp" />

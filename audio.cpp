@@ -1,61 +1,117 @@
 #include "audio.hpp"
 #include <iostream>
+#include <fstream>
 
 gbAudio audio;
 using namespace std;
-void gbAudio::handleAudio()
+
+uint8_t squareDutyCycle[4][8] =
 {
+    { 1, 1, 1, 1, 1, 1, 0, 1 },
+    { 1, 1, 1, 1, 1, 1, 0, 0 },
+    { 1, 1, 1, 1, 0, 0, 0, 0 },
+    { 1, 1, 0, 0, 0, 0, 0, 0 }
+};
 
-}
-
-void gbAudio::genSQ1(uint32_t length, uint8_t* data)
-{
-    uint32_t freq = (((gb->NR14) & 0x7) << 8) | gb->NR13;
-
-    freq = (2048-freq) * 4;
-    freq = (freq * (131072 / 44100)); // Convert from 131072 Hz to 44100 Hz
-    freq /= 60; // Convert frequency from per second to per 60th of a second
-
-    float volume = (gb->NR12 >> 4);
-    for(int i = 0; i < length; i++)
-    {
-        uint8_t state = sq1_currentPeriod / freq;
-
-        if((state & 0x1) == 0)
-        {
-            data[i] = 0x80 + (volume);
-        }
-        else
-        {
-            data[i] = 0x80 - (volume);
-        }
-        sq1_currentPeriod++;
-        if(sq1_currentPeriod >= sq1_lengthForSwap * 2)
-        {
-            sq1_currentPeriod -= sq1_lengthForSwap * 2;
-        }
-    }
-}
+#define queueSize 10
+#define sampleSendAmount 735
 
 void audioCallback(void* userdata, Uint8* stream, int len)
 {
-    audio.genSQ1(len, stream);
+    for(int i = 0; i < len; i++)
+    {
+        uint8_t sampleValue = audio.SQ1[i * (70224 / len)];
+        uint8_t sample = 0x80 + sampleValue;
 
-    //memcpy(stream, SQ1, len);
+        stream[i] = sample;
+        //audioBuffer[i] = i;
+    }
 
-    return;
+
 }
+
+uint8_t sampleConvert[2] = {
+    0x70, 0x90
+};
+
+void gbAudio::sendAudio()
+{
+    uint8_t audioBuffer[sampleSendAmount * queueSize];
+
+
+    for(int i = 0; i < sampleSendAmount; i++)
+    {
+        uint8_t sampleValue = SQ1[i * (70224 / sampleSendAmount)];
+        uint8_t sample = sampleConvert[sampleValue];
+        if(sample != sampleConvert[0] && sample != sampleConvert[1])
+        {
+            cout<<"BAD"<<endl;
+        }
+
+        audioBuffer[i + (sampleSendTimer * sampleSendAmount)] = sample;
+        //audioBuffer[i] = i;
+    }
+    //cout<<SDL_GetQueuedAudioSize(dev)<<endl;
+    sampleSendTimer++;
+    if(sampleSendTimer == queueSize)
+    {
+        sampleSendTimer = 0;
+        SDL_QueueAudio(dev, audioBuffer, sampleSendAmount * queueSize);
+        ofstream audioDump("audioDump.bin", std::ios::binary);
+        audioDump.write((const char*)audioBuffer, sizeof(audioBuffer));
+        audioDump.close();
+    }
+}
+
+void gbAudio::handleAudio()
+{
+    uint32_t freq = (((gb->NR14) & 0x7) << 8) | gb->NR13;
+    //freq = 2000;
+
+    freq = (2048-freq) * 4;
+    while(sq1Timer >= freq)
+    {
+        //cout<<"Freq: "<<sq1Timer - freq<<endl;
+        sq1Timer -= freq;
+        sq1DutyPos++;
+        if(sq1DutyPos >= 8)
+        {
+            sq1DutyPos -= 8;
+        }
+        sq1Value = (squareDutyCycle[2][sq1DutyPos]);
+        sq1Vol = (gb->NR12) >> 4;
+    }
+
+
+
+    for(int i = 0; i < mainAudioSampleTimer; i++)
+    {
+        if(sq1curSample >= 70224)
+        {
+            sq1curSample -= 70224;
+            sendAudio();
+            memset(SQ1, 0x7, sizeof(SQ1));
+        }
+        SQ1[sq1curSample] = sq1Value;
+        sq1curSample++;
+    }
+}
+
+// This is working semi-well, just need to make timing much better probably.  When I come back to this (probably tomorrow)
+// look into boost::asio.  It may have what I'm looking for.
 
 void gbAudio::sdlAudioInit()
 {
-    sq1_currentPeriod = 0;
+    sq1Timer = 0;
+    sq1DutyPos = 0;
     want.freq = 44100;
     want.format = AUDIO_U8;
     want.channels = 1;
-    want.samples = 735 * 2;
-    want.callback = audioCallback;
+    want.samples = 735;
+    want.callback = NULL;
     dev = SDL_OpenAudioDevice(NULL, 0, &want, &have, SDL_AUDIO_ALLOW_FORMAT_CHANGE);
     SDL_OpenAudio(&want, &have);
-    SDL_PauseAudio(0);
+
+    SDL_PauseAudioDevice(dev,0);
 }
 

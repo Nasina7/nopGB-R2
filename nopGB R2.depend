@@ -1,5 +1,5 @@
 # depslib dependency file v1.0
-1658619378 source:/home/zach/cpp_projects/nopGB R2/main.cpp
+1658694460 source:/home/zach/cpp_projects/nopGB R2/main.cpp
 	<iostream>
 	"cpu.hpp"
 	"display.hpp"
@@ -19,7 +19,7 @@
 	<stdint.h>
 	<stdbool.h>
 
-1658612803 source:/home/zach/cpp_projects/nopGB R2/cpu.cpp
+1658691901 source:/home/zach/cpp_projects/nopGB R2/cpu.cpp
 	<iostream>
 	<fstream>
 	"cpu.hpp"
@@ -29,16 +29,17 @@
 	<SDL2/SDL.h>
 	"cpu.hpp"
 
-1658617619 source:/home/zach/cpp_projects/nopGB R2/display.cpp
+1658690494 source:/home/zach/cpp_projects/nopGB R2/display.cpp
 	"display.hpp"
 	<iostream>
 	<bits/stdc++.h>
 
-1658612905 /home/zach/cpp_projects/nopGB R2/audio.hpp
+1658694427 /home/zach/cpp_projects/nopGB R2/audio.hpp
 	<SDL2/SDL.h>
 	"cpu.hpp"
 
-1658619323 source:/home/zach/cpp_projects/nopGB R2/audio.cpp
+1658694498 source:/home/zach/cpp_projects/nopGB R2/audio.cpp
 	"audio.hpp"
 	<iostream>
+	<fstream>
 

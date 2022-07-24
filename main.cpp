@@ -93,6 +93,8 @@ int main()
         }
         gb.cyclesTotalPrev = gb.cyclesTotal;
         gb.cyclesTotal += (gb.cyclesScanline - prevCycles);
+        audio.sq1Timer += (gb.cyclesScanline - prevCycles);
+        audio.mainAudioSampleTimer = (gb.cyclesScanline - prevCycles);
 
         gb.JOYP &= 0xF;
         gb.JOYP |= (gb.JOYP2 & 0x30);
@@ -100,6 +102,7 @@ int main()
 
         gb.runTimer();
         gb.checkInterrupt();
+        audio.handleAudio();
 
 
         if(gb.cyclesScanline >= 456) // New Scanline
@@ -131,6 +134,7 @@ int main()
                 //gb.IF &= 0xFE;
                 //display.renderFullFrame();
                 display.handleEvents();
+                //audio.sendAudio();
             }
             if(gb.LY == gb.LYC - 1)
             {
