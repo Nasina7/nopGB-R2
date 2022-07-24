@@ -97,9 +97,6 @@ void gbAudio::handleAudio()
     }
 }
 
-// This is working semi-well, just need to make timing much better probably.  When I come back to this (probably tomorrow)
-// look into boost::asio.  It may have what I'm looking for.
-
 void gbAudio::sdlAudioInit()
 {
     sq1Timer = 0;
