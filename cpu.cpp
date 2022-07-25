@@ -101,7 +101,7 @@ bool gbClass::loadROM(const char* filename)
 
         default:
             cout<<"Unsupported MBC: "<<std::hex<<(int)ROMFILE[0x147]<<endl;
-            MBC = 1; // Assume MBC 1
+            MBC = 3; // Assume MBC 3
         break;
     }
 
@@ -2525,6 +2525,7 @@ uint8_t gbClass::accessIO(uint8_t port, uint8_t value, bool write)
             }
             else
             {
+                freqTimerChangedSQ1 = true;
                 NR10 = value;
             }
         break;

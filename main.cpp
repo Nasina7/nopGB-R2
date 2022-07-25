@@ -93,8 +93,11 @@ int main()
         }
         gb.cyclesTotalPrev = gb.cyclesTotal;
         gb.cyclesTotal += (gb.cyclesScanline - prevCycles);
+
+        // Todo: Put all of this into it's own function
         audio.sq1Timer += (gb.cyclesScanline - prevCycles);
         audio.mainAudioSampleTimer = (gb.cyclesScanline - prevCycles);
+        audio.sq1FreqTimer += (gb.cyclesScanline - prevCycles);
 
         gb.JOYP &= 0xF;
         gb.JOYP |= (gb.JOYP2 & 0x30);
@@ -112,7 +115,6 @@ int main()
             gb.cyclesScanline -= 456;
             if(gb.LY == 144)
             {
-
                 gb.setIFBit(0x1);
                 FPS++;
                 if(seconds != time(NULL))
@@ -141,7 +143,6 @@ int main()
                 gb.STAT |= 0x6;
                 if(gb.STAT & 0x40)
                 {
-
                     gb.setIFBit(0x2);
                 }
             }

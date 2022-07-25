@@ -118,6 +118,8 @@ class gbClass {
         bool IME;
 
         uint8_t SRAM[16][0x2000];
+
+        bool freqTimerChangedSQ1;
     private:
         uint8_t* ROMFILE;
         int romLength;
