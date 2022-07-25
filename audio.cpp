@@ -3,6 +3,7 @@
 #include <fstream>
 
 gbAudio audio;
+
 using namespace std;
 
 uint8_t squareDutyCycle[4][8] =
@@ -11,13 +12,6 @@ uint8_t squareDutyCycle[4][8] =
     { 1, 1, 1, 1, 1, 1, 0, 0 },
     { 1, 1, 1, 1, 0, 0, 0, 0 },
     { 1, 1, 0, 0, 0, 0, 0, 0 }
-};
-
-#define queueSize 10
-#define sampleSendAmount 735
-
-uint8_t sampleConvert[2] = {
-    0x71, 0x8F
 };
 
 uint32_t pitchSweepSQ1[8] = {
@@ -62,6 +56,7 @@ void gbAudio::sendAudio()
 
 void gbAudio::handleAudio()
 {
+    // SQ1 Frequency Sweep
     if(gb->freqTimerChangedSQ1)
     {
         gb->freqTimerChangedSQ1 = false;
@@ -70,7 +65,6 @@ void gbAudio::handleAudio()
 
     while(sq1FreqTimer >= pitchSweepSQ1[(gb->NR10 >> 4) & 0x7])
     {
-        //cout<<"hthaotihwofaihdwoaidhaw"<<endl;
         sq1FreqTimer -= pitchSweepSQ1[(gb->NR10 >> 4) & 0x7];
         uint16_t freqSweep = (((gb->NR14) & 0x7) << 8) | gb->NR13;
         if(gb->NR10 & 0x8)
@@ -81,20 +75,17 @@ void gbAudio::handleAudio()
         {
             freqSweep = freqSweep + (freqSweep / pow(2, (gb->NR10 & 0x7)));
         }
-        //cout<<freqSweep<<endl;
         // Todo: This shouldn't get written back to the I/O Regs
         gb->NR13 = freqSweep;
         gb->NR14 = freqSweep >> 8;
     }
 
-
+    // SQ1
     uint32_t freq = (((gb->NR14) & 0x7) << 8) | gb->NR13;
 
     freq = (2048-freq) * 4;
     while(sq1Timer >= freq)
     {
-        //cout<<(int)sq1FreqTimer<<endl;
-        //cout<<"Freq: "<<sq1Timer - freq<<endl;
         sq1Timer -= freq;
         sq1DutyPos++;
         if(sq1DutyPos >= 8)
@@ -106,14 +97,14 @@ void gbAudio::handleAudio()
     }
 
 
-
+    // Add samples to SQ1
     for(int i = 0; i < mainAudioSampleTimer; i++)
     {
         if(sq1curSample >= 70224)
         {
             sq1curSample -= 70224;
             sendAudio();
-            memset(SQ1, 0x7, sizeof(SQ1));
+            memset(SQ1, 0x7, sizeof(SQ1)); // Init the buffer to a default value for testing
         }
         SQ1[sq1curSample].sample = sq1Value;
         SQ1[sq1curSample].volume = sq1Vol;
