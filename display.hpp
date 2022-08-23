@@ -12,6 +12,7 @@ class gbDisplay {
         int initSDL2();
         void setWindowTitle(const char* title);
         void handleEvents();
+        void toggleVSYNC();
         void renderTilemapFrame();
         void renderSprites();
         void renderSpriteTile(uint8_t xPos, uint8_t yPos, uint8_t num, uint8_t attr, uint8_t line, bool debug);
@@ -29,6 +30,7 @@ class gbDisplay {
 
         time_t seconds;
         int FPS;
+        bool vsync;
 
         uint8_t windowScanline;
 

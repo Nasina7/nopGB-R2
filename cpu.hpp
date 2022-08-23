@@ -27,6 +27,7 @@ struct MBC5Struct {
 
 class gbClass {
     public:
+        bool gbDebug;
         int audioDumpEnable;
 
         bool runGB;

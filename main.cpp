@@ -13,7 +13,7 @@ using namespace std;
 
     Todo (in order of importance):
         * Implement GBC
-        * Debug Pokemon Blue Intro Song (I think my MBC 1 might be a bit broken)
+        * Debug Pokemon Gen 1 Song Transitions (and ED tile on name screen)
         * Implement Length Counter (APU)
         * Implement MBC3 RTC
         * Implement UI (ImGUI?)
@@ -29,7 +29,7 @@ int main(int argc, char** argv)
     audio.gb = &gb;
     gb.audio = &audio;
 
-    if(!gb.loadROM("roms/pokemon.gb"))
+    if(!gb.loadROM("roms/gold.gb"))
     {
         return 1;
     }
@@ -92,6 +92,10 @@ int main(int argc, char** argv)
         else
         {
             gb.cyclesScanline += 4;
+        }
+        if(gb.gbDebug == true)
+        {
+            cout<<"PC: 0x"<<std::hex<<gb.PC<<endl;
         }
 
         gb.cyclesTotalPrev = gb.cyclesTotal;

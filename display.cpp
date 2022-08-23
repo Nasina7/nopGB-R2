@@ -25,7 +25,27 @@ int gbDisplay::initSDL2()
     SDL_RenderSetScale(render, 3, 3);
     SDL_RendererInfo info;
     SDL_GetRendererInfo(render, &info);
+    vsync = true;
     return 0;
+}
+
+void gbDisplay::toggleVSYNC()
+{
+    SDL_DestroyTexture(tex);
+    SDL_DestroyRenderer(render);
+
+
+    if(vsync)
+    {
+        render = SDL_CreateRenderer(win, 1, SDL_RENDERER_ACCELERATED);
+    }
+    else
+    {
+        render = SDL_CreateRenderer(win, 1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+    }
+    tex = SDL_CreateTexture(render, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, 160, 144);
+
+    vsync = !vsync;
 }
 
 uint32_t gbColorLookup[5] = {
@@ -474,11 +494,16 @@ void gbDisplay::handleEvents()
         {
             switch(e.key.keysym.sym)
             {
+                case SDLK_v:
+                    toggleVSYNC();
+                break;
+
                 case SDLK_p:
                     cout<<"PC: "<<std::hex<<gb->PC<<endl;
                     cout<<"IF: "<<std::hex<<(int)gb->IF<<endl;
                     cout<<"IE: "<<std::hex<<(int)gb->IE<<endl;
                     cout<<"IME: "<<std::hex<<gb->IME<<endl;
+                    gb->gbDebug = true;
                 break;
 
                 case SDLK_m:
