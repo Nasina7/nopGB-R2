@@ -91,6 +91,10 @@ class gbAudio {
         uint8_t NR42;
         uint8_t NR43;
         uint8_t NR44;
+
+        uint8_t NR50;
+        uint8_t NR51;
+        uint8_t NR52;
     private:
 
 

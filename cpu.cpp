@@ -8,7 +8,7 @@ using namespace std; // Todo: Remove This
 
 #define get16Val(x) ((readRAM(x + 2) << 8) | readRAM(x + 1))
 
-#define unknownRamReturn 0xFF
+#define unknownRamReturn 0x00
 
 uint32_t sramSize[6][2] = {
     {0,0},
@@ -104,7 +104,7 @@ bool gbClass::loadROM(const char* filename)
 
         case 0x12:
         case 0x13:
-            MBC = 3;
+            MBC = 5;
             sramExists = true;
             mbc3.timerExists = false;
         break;
@@ -164,6 +164,30 @@ void gbClass::resetGB()
     unkFF72 = 0xFF;
     unkFF73 = 0xFF;
     unkFF75 = 0xFF;
+
+    /*
+    audio->NR10 = 0x80;
+    audio->NR11 = 0xBF;
+    audio->NR12 = 0xF3;
+    audio->NR13 = 0xC1;
+    audio->NR14 = 0xBF;
+
+    audio->NR21 = 0x00;
+    audio->NR22 = 0x00;
+    audio->NR23 = 0x00;
+    audio->NR24 = 0xB8;
+
+    audio->NR30 = 0x7F;
+    audio->NR31 = 0x00;
+    audio->NR32 = 0x9F;
+    audio->NR33 = 0x00;
+    audio->NR34 = 0xB8;
+
+    audio->NR41 = 0xC0;
+    audio->NR42 = 0x00;
+    audio->NR43 = 0x00;
+    audio->NR44 = 0xBF;
+    */
 
     TAC = 0xF8;
     TIMA = 0;
@@ -910,6 +934,8 @@ uint8_t gbClass::readRAM(uint16_t location)
     {
         return IE;
     }
+    cout<<"BAD!"<<endl;
+    runGB = false;
     return unknownRamReturn;
 }
 
@@ -2689,6 +2715,13 @@ uint8_t gbClass::accessIO(uint8_t port, uint8_t value, bool write)
             }
         break;
 
+        case 0x15:
+            if(!write)
+            {
+                return 0xFF;
+            }
+        break;
+
         case 0x16:
             if(!write)
             {
@@ -2784,6 +2817,13 @@ uint8_t gbClass::accessIO(uint8_t port, uint8_t value, bool write)
             }
         break;
 
+        case 0x1F:
+            if(!write)
+            {
+                return 0xFF;
+            }
+        break;
+
         case 0x20:
             if(!write)
             {
@@ -2822,6 +2862,37 @@ uint8_t gbClass::accessIO(uint8_t port, uint8_t value, bool write)
             else
             {
                 audio->NR44 = value | 0x3F;
+            }
+        break;
+
+        case 0x24:
+            if(!write)
+            {
+                return audio->NR50;
+            }
+            else
+            {
+                audio->NR50 = value;
+            }
+        break;
+        case 0x25:
+            if(!write)
+            {
+                return audio->NR51;
+            }
+            else
+            {
+                audio->NR51 = value;
+            }
+        break;
+        case 0x26:
+            if(!write)
+            {
+                return audio->NR52;
+            }
+            else
+            {
+                audio->NR52 = value;
             }
         break;
 

@@ -5,6 +5,7 @@
 #define JOY_B     1
 #define JOY_X     2
 #define JOY_Y     3
+#define JOY_L     6
 #define JOY_PLUS  10
 #define JOY_MINUS 11
 #define JOY_LEFT  12
@@ -35,7 +36,27 @@ int gbDisplay::initSDL2()
     //SDL_RenderSetScale(render, 3, 3);
     SDL_RendererInfo info;
     SDL_GetRendererInfo(render, &info);
+    vsync = true;
     return 0;
+}
+
+void gbDisplay::toggleVSYNC()
+{
+    SDL_DestroyTexture(tex);
+    SDL_DestroyRenderer(render);
+
+
+    if(vsync)
+    {
+        render = SDL_CreateRenderer(win, 1, SDL_RENDERER_ACCELERATED);
+    }
+    else
+    {
+        render = SDL_CreateRenderer(win, 1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+    }
+    tex = SDL_CreateTexture(render, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, 160, 144);
+
+    vsync = !vsync;
 }
 
 uint32_t gbColorLookup[5] = {
@@ -500,6 +521,10 @@ void gbDisplay::handleEvents()
                 {
                     case JOY_X:
                         gb->resetGB();
+                    break;
+
+                    case JOY_L:
+                        toggleVSYNC();
                     break;
 
                     case JOY_PLUS:
