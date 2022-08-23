@@ -2,6 +2,8 @@
 #ifndef CPU_HPP
 #define CPU_HPP
 
+#include "audio.hpp"
+
 struct MBC1Struct {
     uint8_t bankNumberLow;
     bool onSRAM;
@@ -15,6 +17,12 @@ struct MBC3Struct {
     uint8_t bankNumberRAM;
     uint8_t rtcLatchState;
     bool timerExists;
+};
+
+struct MBC5Struct {
+    uint16_t bankNumber;
+    uint8_t sramBankNumber;
+    bool onSRAM;
 };
 
 class gbClass {
@@ -48,8 +56,9 @@ class gbClass {
         void setIFBit(uint8_t bit);
 
         void checkInterrupt();
+        void handleModeTimings();
 
-        void swapBank(uint8_t sectionNum, uint8_t bankNum);
+        void swapBank(uint8_t sectionNum, uint16_t bankNum);
         void swapBankOld(uint8_t sectionNum, uint8_t bankNum);
 
         void runTimer();
@@ -75,36 +84,13 @@ class gbClass {
         uint8_t SC; // 0xFF02
 
         uint8_t DIV; // 0xFF04
+        uint32_t divTimer;
+
         uint16_t TIMA; // 0xFF05
         uint8_t TMA; // 0xFF06
         uint8_t TAC; // 0xFF07
 
         uint8_t IF; // 0xFF0F
-
-        // Audio I/O Goes here, It'll be added later
-
-        uint8_t NR10;
-        uint8_t NR11;
-        uint8_t NR12;
-        uint8_t NR13;
-        uint8_t NR14;
-
-        uint8_t NR21;
-        uint8_t NR22;
-        uint8_t NR23;
-        uint8_t NR24;
-
-        uint8_t NR30;
-        uint8_t NR31;
-        uint8_t NR32;
-        uint8_t NR33;
-        uint8_t NR34;
-        uint8_t WAVERAM[0x10];
-
-        uint8_t NR41;
-        uint8_t NR42;
-        uint8_t NR43;
-        uint8_t NR44;
 
         uint8_t LCDC; // 0xFF40
         uint8_t STAT; // 0xFF41
@@ -132,6 +118,10 @@ class gbClass {
         uint8_t OBPI; // 0xFF6A (CGB Only)
         uint8_t OBPD; // 0xFF6B (CGB Only)
 
+        uint8_t unkFF72;
+        uint8_t unkFF73;
+        uint8_t unkFF75;
+
 
         uint8_t IE; // 0xFFFF
         bool IME;
@@ -139,6 +129,10 @@ class gbClass {
         uint8_t SRAM[16][0x2000];
 
         bool freqTimerChangedSQ1;
+
+        uint8_t initVRAM[0x2000];
+
+        gbAudio* audio;
     private:
         uint8_t* ROMFILE;
         int romLength;
@@ -148,6 +142,7 @@ class gbClass {
         uint8_t sramState;
         struct MBC1Struct mbc1;
         struct MBC3Struct mbc3;
+        struct MBC5Struct mbc5;
 
         uint8_t ROM[2][0x4000]; // This would need to be expanded later
         uint8_t VRAM[8][0x2000];  // This is banked in preperation for GBC support
@@ -155,6 +150,8 @@ class gbClass {
         uint8_t WRAM[8][0x1000]; // Bankable in preperation for GBC
         uint8_t OAM[0xA0];
         uint8_t HRAM[0x7F];
+
+
 
 
 

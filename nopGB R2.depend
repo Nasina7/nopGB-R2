@@ -43,23 +43,6 @@
 	<iostream>
 	<fstream>
 
-1661219788 source:/home/zach/cpp_projects/nopGB_R2/audio.cpp
-	"audio.hpp"
-	<iostream>
-	<fstream>
-
-1661218245 /home/zach/cpp_projects/nopGB_R2/audio.hpp
-	<SDL2/SDL.h>
-	"cpu.hpp"
-
-1661216131 /home/zach/cpp_projects/nopGB_R2/cpu.hpp
-
-1661216203 source:/home/zach/cpp_projects/nopGB_R2/cpu.cpp
-	<iostream>
-	<fstream>
-	"cpu.hpp"
-	<string.h>
-
 1656791130 source:/home/zach/cpp_projects/nopGB_R2/scheduler/scheduler.c
 	"scheduler.h"
 	<stdio.h>
@@ -68,61 +51,41 @@
 	<stdint.h>
 	<stdbool.h>
 
-1661220904 source:/home/zach/cpp_projects/nopGB_R2/main.cpp
-	<iostream>
-	"cpu.hpp"
-	"display.hpp"
-	"time.h"
-	<string>
-	<sstream>
-	<fstream>
-	"audio.hpp"
-
-1661198337 /home/zach/cpp_projects/nopGB_R2/display.hpp
-	<SDL2/SDL.h>
-	"cpu.hpp"
-
-1661226084 source:/home/zach/cpp_projects/nopGB_R2/source/display.cpp
-	"display.hpp"
-	<iostream>
-	<bits/stdc++.h>
-
-1661198337 /home/zach/cpp_projects/nopGB_R2/source/display.hpp
-	<SDL2/SDL.h>
-	"cpu.hpp"
-
-1661216131 /home/zach/cpp_projects/nopGB_R2/source/cpu.hpp
-
-1656791130 source:/home/zach/cpp_projects/nopGB_R2/source/scheduler/scheduler.c
-	"scheduler.h"
-	<stdio.h>
-
-1656791124 /home/zach/cpp_projects/nopGB_R2/source/scheduler/scheduler.h
-	<stdint.h>
-	<stdbool.h>
-
-1661225800 source:/home/zach/cpp_projects/nopGB_R2/source/audio.cpp
+1661275412 source:/home/zach/cpp_projects/nopGB_R2/audio.cpp
 	"audio.hpp"
 	<iostream>
 	<fstream>
 
-1661218245 /home/zach/cpp_projects/nopGB_R2/source/audio.hpp
+1661274971 /home/zach/cpp_projects/nopGB_R2/audio.hpp
 	<SDL2/SDL.h>
 	"cpu.hpp"
 
-1661225076 source:/home/zach/cpp_projects/nopGB_R2/source/cpu.cpp
+1661276186 /home/zach/cpp_projects/nopGB_R2/cpu.hpp
+	"audio.hpp"
+
+1661276232 source:/home/zach/cpp_projects/nopGB_R2/cpu.cpp
 	<iostream>
 	<fstream>
 	"cpu.hpp"
 	<string.h>
+	<time.h>
 
-1661226196 source:/home/zach/cpp_projects/nopGB_R2/source/main.cpp
+1661276235 source:/home/zach/cpp_projects/nopGB_R2/main.cpp
 	<iostream>
 	"cpu.hpp"
 	"display.hpp"
-	"time.h"
 	<string>
 	<sstream>
 	<fstream>
 	"audio.hpp"
+
+1661276182 /home/zach/cpp_projects/nopGB_R2/display.hpp
+	<SDL2/SDL.h>
+	"cpu.hpp"
+	<time.h>
+
+1661276688 source:/home/zach/cpp_projects/nopGB_R2/display.cpp
+	"display.hpp"
+	<iostream>
+	<bits/stdc++.h>
 
