@@ -391,11 +391,11 @@ void gbAudio::sdlAudioInit()
     sq1DutyPos = 0;
     sq1FreqTimer = 0;
     want.freq = 44100;
-    want.format = AUDIO_S8;
+    want.format = AUDIO_U8;
     want.channels = 1;
     want.samples = 735;
     want.callback = NULL;
-    dev = SDL_OpenAudioDevice(NULL, 0, &want, &have, SDL_AUDIO_ALLOW_FORMAT_CHANGE);
+    dev = SDL_OpenAudioDevice(NULL, 0, &want, &have, 0);
     SDL_OpenAudio(&want, &have);
 
     SDL_PauseAudioDevice(dev,0);

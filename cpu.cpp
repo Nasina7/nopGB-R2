@@ -22,6 +22,12 @@ bool gbClass::loadROM(const char* filename)
 {
     ifstream openRom(filename, std::ifstream::binary);
 
+    if(!openRom.is_open())
+    {
+        cout<<"Could not open rom!\n"<<endl;
+        return 0;
+    }
+
     openRom.seekg(0, openRom.end);
     romLength = openRom.tellg();
     openRom.seekg(0, openRom.beg);

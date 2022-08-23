@@ -6,6 +6,7 @@
 #include <sstream>
 #include <fstream>
 #include "audio.hpp"
+#include <switch.h>
 
 using namespace std;
 
@@ -20,6 +21,9 @@ using namespace std;
 
 int main(int argc, char**argv)
 {
+
+    socketInitializeDefault();              // Initialize sockets
+    nxlinkStdio();                          // Redirect stdout and stderr over the network to nxlink
     int FPS = 0;
     time_t seconds = time(NULL);
     gbClass gb;
@@ -28,10 +32,13 @@ int main(int argc, char**argv)
     display.gb = &gb;
     audio.gb = &gb;
 
-    gb.loadROM("roms/pokeTCG.gbc");
+    if(!gb.loadROM("nopGB/roms/pokeTCG.gbc"))
+    {
+        return 1;
+    }
 
     string saveName;
-    saveName += "save/";
+    saveName += "nopGB/save/";
     for(int i = 0x134; i < 0x143; i++)
     {
         if(gb.readRAM(i) == 0)
@@ -43,9 +50,13 @@ int main(int argc, char**argv)
     saveName += ".sav";
 
     ifstream readSav(saveName, std::ifstream::binary);
-    if(readSav)
+    if(readSav.is_open())
     {
         readSav.read((char*)gb.SRAM, 0x2000 * 16);
+    }
+    else
+    {
+        cout<<"Could not find: "<<saveName<<endl;
     }
     readSav.close();
 
@@ -56,6 +67,8 @@ int main(int argc, char**argv)
     {
         return 0;
     }
+
+    SDL_JoystickOpen(0);
 
     audio.sdlAudioInit();
 
@@ -172,10 +185,22 @@ int main(int argc, char**argv)
     }
 
 
-    ofstream writeSav(saveName, std::ifstream::binary);
 
-    writeSav.write((char*)gb.SRAM, 0x2000 * 16);
+    ofstream writeSav(saveName, std::ofstream::binary | std::ios::out);
+    if(writeSav.is_open())
+    {
+        writeSav.write((char*)gb.SRAM, 0x2000 * 16);
+    }
+    else
+    {
+        cout<<"Could not output: "<<saveName<<endl;
+    }
     writeSav.close();
+
+    socketExit();
+
+
+    display.deinitSDL2();
 
     return 0;
 }

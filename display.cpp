@@ -1,6 +1,16 @@
 #include "display.hpp"
 #include <iostream>
 #include <bits/stdc++.h>
+#define JOY_A     0
+#define JOY_B     1
+#define JOY_X     2
+#define JOY_Y     3
+#define JOY_PLUS  10
+#define JOY_MINUS 11
+#define JOY_LEFT  12
+#define JOY_UP    13
+#define JOY_RIGHT 14
+#define JOY_DOWN  15
 
 /*
     How to potentially optimize this further:
@@ -19,10 +29,10 @@ int gbDisplay::initSDL2()
         std::cout << "Failed to init sdl: " << SDL_GetError() << std::endl;
         return 1;
     }
-    win = SDL_CreateWindow("nopGB R2 Speedrun", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1920, 1080, SDL_WINDOW_RESIZABLE);
-    render = SDL_CreateRenderer(win, 1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+    win = SDL_CreateWindow("nopGB R2 Speedrun", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1280, 720, SDL_WINDOW_RESIZABLE);
+    render = SDL_CreateRenderer(win, 0, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
     tex = SDL_CreateTexture(render, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, 160, 144);
-    SDL_RenderSetScale(render, 3, 3);
+    //SDL_RenderSetScale(render, 3, 3);
     SDL_RendererInfo info;
     SDL_GetRendererInfo(render, &info);
     for(int i = 0; i < info.num_texture_formats; i++)
@@ -417,7 +427,16 @@ void gbDisplay::renderScanline()
     if(gb->LY == 144)
     {
         SDL_UpdateTexture(tex, NULL, framebuffer, 160 * 4);
-        SDL_RenderCopy(render, tex, NULL, NULL);
+        SDL_Rect screen;
+        int w, h;
+        SDL_GetWindowSize(win, &w, &h);
+        screen.w = 160 * (720 / 144);
+        screen.h = 720;
+        screen.x = (1280 / 2) - (screen.w / 2);
+        screen.y = 0;
+        SDL_SetRenderDrawColor(render, 0,0,0,0);
+        SDL_RenderClear(render);
+        SDL_RenderCopy(render, tex, NULL, &screen);
         SDL_RenderPresent(render);
         windowScanline = 0;
     }
@@ -480,106 +499,101 @@ void gbDisplay::handleEvents()
     gb->JOYP |= 0xCF;
     while(SDL_PollEvent(&e))
     {
-        if(e.type == SDL_KEYDOWN)
+        if(e.type == SDL_JOYBUTTONDOWN)
         {
-            switch(e.key.keysym.sym)
+            if(e.jbutton.which == 0)
             {
-                case SDLK_RETURN:
-                    gb->JOYPR &= 0xF7;
-                break;
+                switch(e.jbutton.button)
+                {
+                    case JOY_PLUS:
+                        gb->JOYPR &= 0xF7;
+                    break;
 
-                case SDLK_x:
-                    gb->JOYPR &= 0xFE;
-                break;
+                    case JOY_A:
+                        gb->JOYPR &= 0xFE;
+                    break;
 
-                case SDLK_z:
-                    gb->JOYPR &= 0xFD;
-                break;
+                    case JOY_B:
+                        gb->JOYPR &= 0xFD;
+                    break;
 
-                case SDLK_LSHIFT:
-                    gb->JOYPR &= 0xFB;
-                break;
+                    case JOY_MINUS:
+                        gb->JOYPR &= 0xFB;
+                    break;
 
-                case SDLK_UP:
-                    gb->JOYPR &= 0xBF;
-                break;
+                    case JOY_UP:
+                        gb->JOYPR &= 0xBF;
+                    break;
 
-                case SDLK_DOWN:
-                    gb->JOYPR &= 0x7F;
-                break;
+                    case JOY_DOWN:
+                        gb->JOYPR &= 0x7F;
+                    break;
 
-                case SDLK_LEFT:
-                    gb->JOYPR &= 0xDF;
-                break;
+                    case JOY_LEFT:
+                        gb->JOYPR &= 0xDF;
+                    break;
 
-                case SDLK_RIGHT:
-                    gb->JOYPR &= 0xEF;
-                break;
+                    case JOY_RIGHT:
+                        gb->JOYPR &= 0xEF;
+                    break;
 
-                default:
+                    default:
 
-                break;
+                    break;
+                }
             }
         }
-        else if(e.type == SDL_KEYUP)
+        else if(e.type == SDL_JOYBUTTONUP)
         {
-            switch(e.key.keysym.sym)
+            if(e.jbutton.which == 0)
             {
-                case SDLK_p:
-                    cout<<"PC: "<<std::hex<<gb->PC<<endl;
-                    cout<<"IF: "<<std::hex<<(int)gb->IF<<endl;
-                    cout<<"IE: "<<std::hex<<(int)gb->IE<<endl;
-                    cout<<"IME: "<<std::hex<<gb->IME<<endl;
-                break;
+                switch(e.jbutton.button)
+                {
+                    case JOY_X:
+                        gb->resetGB();
+                    break;
 
-                case SDLK_m:
-                    gb->audioDumpEnable = 1;
-                break;
+                    case JOY_PLUS:
+                        gb->JOYPR |= 0x8;
+                    break;
 
-                case SDLK_TAB:
-                    gb->resetGB();
-                break;
+                    case JOY_B:
+                        gb->JOYPR |= 0x2;
+                    break;
 
-                case SDLK_RETURN:
-                    gb->JOYPR |= 0x8;
-                break;
+                    case JOY_MINUS:
+                        gb->JOYPR |= 0x4;
+                    break;
 
-                case SDLK_z:
-                    gb->JOYPR |= 0x2;
-                break;
+                    case JOY_A:
+                        gb->JOYPR |= 0x1;
+                    break;
 
-                case SDLK_LSHIFT:
-                    gb->JOYPR |= 0x4;
-                break;
+                    case JOY_UP:
+                        gb->JOYPR |= 0x40;
+                    break;
 
-                case SDLK_x:
-                    gb->JOYPR |= 0x1;
-                break;
+                    case JOY_DOWN:
+                        gb->JOYPR |= 0x80;
+                    break;
 
-                case SDLK_UP:
-                    gb->JOYPR |= 0x40;
-                break;
+                    case JOY_LEFT:
+                        gb->JOYPR |= 0x20;
+                    break;
 
-                case SDLK_DOWN:
-                    gb->JOYPR |= 0x80;
-                break;
+                    case JOY_RIGHT:
+                        gb->JOYPR |= 0x10;
+                    break;
 
-                case SDLK_LEFT:
-                    gb->JOYPR |= 0x20;
-                break;
+                    case JOY_Y:
+                        gb->runGB = false;
+                    break;
 
-                case SDLK_RIGHT:
-                    gb->JOYPR |= 0x10;
-                break;
+                    default:
 
-                default:
-
-                break;
+                    break;
+                }
             }
-        }
-        else if(e.type == SDL_QUIT)
-        {
-            gb->runGB = false;
         }
     }
 }
@@ -655,4 +669,11 @@ void gbDisplay::handleModeTimings()
             }
         }
     }
+}
+
+void gbDisplay::deinitSDL2()
+{
+    SDL_DestroyRenderer(render);
+    SDL_DestroyWindow(win);
+    SDL_Quit();
 }
