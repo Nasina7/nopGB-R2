@@ -19,7 +19,7 @@ int gbDisplay::initSDL2()
         std::cout << "Failed to init sdl: " << SDL_GetError() << std::endl;
         return 1;
     }
-    win = SDL_CreateWindow("nopGB R2 Speedrun", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 160 * 3, 144 * 3, SDL_WINDOW_RESIZABLE);
+    win = SDL_CreateWindow("nopGB R2 Speedrun", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1920, 1080, SDL_WINDOW_RESIZABLE);
     render = SDL_CreateRenderer(win, 1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
     tex = SDL_CreateTexture(render, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, 160, 144);
     SDL_RenderSetScale(render, 3, 3);
