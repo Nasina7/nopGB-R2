@@ -5,6 +5,7 @@ class gbDisplay {
     public:
         void renderFullFrame();
         int initSDL2();
+        void handleModeTimings();
         void setWindowTitle(const char* title);
         void handleEvents();
         void renderTilemapFrame();

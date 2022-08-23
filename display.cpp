@@ -25,7 +25,6 @@ int gbDisplay::initSDL2()
     SDL_RenderSetScale(render, 3, 3);
     SDL_RendererInfo info;
     SDL_GetRendererInfo(render, &info);
-
     for(int i = 0; i < info.num_texture_formats; i++)
     {
         cout<<"Tex Format: "<<info.texture_formats[i]<<endl;
@@ -415,7 +414,7 @@ void gbDisplay::renderScanline()
         renderSprites();
     }
 
-    if(gb->LY == 152)
+    if(gb->LY == 144)
     {
         SDL_UpdateTexture(tex, NULL, framebuffer, 160 * 4);
         SDL_RenderCopy(render, tex, NULL, NULL);
@@ -533,6 +532,10 @@ void gbDisplay::handleEvents()
                     cout<<"IME: "<<std::hex<<gb->IME<<endl;
                 break;
 
+                case SDLK_m:
+                    gb->audioDumpEnable = 1;
+                break;
+
                 case SDLK_TAB:
                     gb->resetGB();
                 break;
@@ -577,6 +580,79 @@ void gbDisplay::handleEvents()
         else if(e.type == SDL_QUIT)
         {
             gb->runGB = false;
+        }
+    }
+}
+
+void gbDisplay::handleModeTimings()
+{
+    uint8_t prevStat = gb->STAT;
+    if(gb->LY >= 144)
+    {
+        gb->STAT &= 0xFC;
+        gb->STAT |= 0x1;
+        return;
+    }
+    // STAT TIMINGS
+    // These timings are an approximation, as i can't seem to find documentation for this.
+    if((gb->cyclesScanline) < (84) && (gb->LCDC & 0x80) == 0x80) // Mode 2
+    {
+        gb->STAT &= 0xFC;
+        gb->STAT |= 0x2;
+        /*
+        if((io.LCDCS & 0x20) != 0 && (cpu.prevCycles % cyclesPerScanline) >= 84)
+        {
+            io.IF = io.IF | 0x2;
+            cpu.handleInterrupts();
+        }
+        */
+    }
+    else if((gb->cyclesScanline) < (375) && (gb->LCDC & 0x80) == 0x80) // Mode 3
+    {
+        gb->STAT &= 0xFC;
+        gb->STAT |= 0x3;
+    }
+    else if((gb->cyclesScanline) <= (456) && (gb->LCDC & 0x80) == 0x80) // Mode 0
+    {
+        gb->STAT &= 0xFC;
+        gb->STAT |= 0x0;
+        /*
+        if((io.LCDCS & 0x8) != 0 && (cpu.prevCycles % cyclesPerScanline) < 375)
+        {
+            io.IF = io.IF | 0x2;
+            cpu.handleInterrupts();
+        }
+        */
+    }
+
+    if(!(gb->LCDC & 0x80))
+    {
+        gb->STAT &= 0xFC;
+        gb->STAT |= 0x0;
+    }
+    if(prevStat != gb->STAT)
+    {
+        // Mode Changed
+        if((gb->STAT & 0x3) == 0)
+        {
+            if(gb->STAT & 0x8)
+            {
+                gb->IF |= 0x2;
+            }
+        }
+        else if((gb->STAT & 0x3) == 1)
+        {
+            if(gb->STAT & 0x10)
+            {
+                gb->IF |= 0x2;
+            }
+        }
+        else if((gb->STAT & 0x3) == 2)
+        {
+            if(gb->STAT & 0x20)
+            {
+                gb->IF |= 0x2;
+            }
         }
     }
 }

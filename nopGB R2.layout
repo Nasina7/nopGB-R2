@@ -1,59 +1,61 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
 <CodeBlocks_layout_file>
 	<FileVersion major="1" minor="0" />
-	<ActiveTarget name="Debug" />
-	<File name="cpu.cpp" open="1" top="0" tabpos="2" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="48112" topLine="2192" />
-		</Cursor>
-		<Folding>
-			<Collapse line="157" />
-			<Collapse line="2389" />
-			<Collapse line="2403" />
-			<Collapse line="2408" />
-		</Folding>
-	</File>
-	<File name="main.cpp" open="1" top="1" tabpos="1" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="462" topLine="14" />
-		</Cursor>
-	</File>
+	<ActiveTarget name="Release" />
 	<File name="cpu.hpp" open="1" top="0" tabpos="3" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
 		<Cursor>
-			<Cursor1 position="3077" topLine="107" />
-		</Cursor>
-	</File>
-	<File name="audio.hpp" open="1" top="0" tabpos="7" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="536" topLine="18" />
-		</Cursor>
-	</File>
-	<File name="scheduler/scheduler.c" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="0" topLine="35" />
+			<Cursor1 position="2461" topLine="96" />
 		</Cursor>
 	</File>
 	<File name="display.hpp" open="1" top="0" tabpos="5" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
 		<Cursor>
-			<Cursor1 position="127" topLine="0" />
+			<Cursor1 position="542" topLine="1" />
 		</Cursor>
 	</File>
-	<File name="audio.cpp" open="1" top="0" tabpos="6" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+	<File name="audio.hpp" open="1" top="0" tabpos="7" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
 		<Cursor>
-			<Cursor1 position="1708" topLine="42" />
+			<Cursor1 position="996" topLine="30" />
+		</Cursor>
+	</File>
+	<File name="cpu.cpp" open="1" top="0" tabpos="2" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="51882" topLine="2712" />
 		</Cursor>
 		<Folding>
-			<Collapse line="34" />
+			<Collapse line="722" />
+			<Collapse line="815" />
+			<Collapse line="2418" />
 		</Folding>
+	</File>
+	<File name="main.cpp" open="1" top="1" tabpos="1" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="225" topLine="0" />
+		</Cursor>
 	</File>
 	<File name="display.cpp" open="1" top="0" tabpos="4" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
 		<Cursor>
-			<Cursor1 position="853" topLine="0" />
+			<Cursor1 position="1022" topLine="520" />
 		</Cursor>
 	</File>
 	<File name="scheduler/scheduler.h" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
 		<Cursor>
 			<Cursor1 position="0" topLine="10" />
+		</Cursor>
+	</File>
+	<File name="audio.cpp" open="1" top="0" tabpos="6" split="0" active="1" splitpos="0" zoom_1="-1" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="7377" topLine="161" />
+		</Cursor>
+		<Folding>
+			<Collapse line="104" />
+			<Collapse line="173" />
+			<Collapse line="217" />
+			<Collapse line="225" />
+		</Folding>
+	</File>
+	<File name="scheduler/scheduler.c" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="0" topLine="35" />
 		</Cursor>
 	</File>
 </CodeBlocks_layout_file>

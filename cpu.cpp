@@ -7,6 +7,8 @@ using namespace std; // Todo: Remove This
 
 #define get16Val(x) ((readRAM(x + 2) << 8) | readRAM(x + 1))
 
+#define unknownRamReturn 0xFF
+
 uint32_t sramSize[6][2] = {
     {0,0},
     {1,0x800},
@@ -113,21 +115,21 @@ void gbClass::resetGB()
 {
     PC = 0x100;
     SP = 0xFFFE;
-    A = 0x11;
+    A = 0x01;
     B = 0x00;
-    C = 0x00;
-    D = 0xFF;
-    E = 0x56;
-    F = 0x80;
-    H = 0x00;
-    L = 0x0D;
+    C = 0x13;
+    D = 0x00;
+    E = 0xD8;
+    F = 0xB0;
+    H = 0x01;
+    L = 0x4D;
     IME = false;
     LCDC = 0x91;
-    STAT = 0x81;
-    LY = 0x90;
+    STAT = 0x85;
+    LY = 0;
     cyclesScanline = 0;
     IE = 0;
-    IF = 0xE1;
+    IF = 1;
     runGB = true;
     BGP = 0xFC;
     OBP0 = 0xFF;
@@ -541,7 +543,7 @@ void gbClass::handleMBC(uint16_t location, uint8_t value)
             //cout<<"Value: "<<std::hex<<(int)value<<endl;
             if(location < 0x2000)
             {
-                if(value & 0xF == 0xA)
+                if((value & 0xF) == 0xA)
                 {
                     mbc1.onSRAM = true;
                 }
@@ -553,9 +555,15 @@ void gbClass::handleMBC(uint16_t location, uint8_t value)
             else if(location < 0x4000)
             {
                 mbc1.bankNumberLow = value & 0x1F;
+                if((value & 0x1F) == 0 && !mbc1.bankHighBehavior)
+                {
+                    mbc1.bankNumberLow++;
+                }
+
                 if(mbc1.bankHighBehavior)
                 {
-                    swapBank(1, mbc1.bankNumberLow);
+                    //swapBank(0, mbc1.bankNumberHigh << 5 | mbc1.bankNumberLow);
+                    // Todo: Add Lower Rom Banking Support
                 }
                 else
                 {
@@ -564,13 +572,14 @@ void gbClass::handleMBC(uint16_t location, uint8_t value)
             }
             else if(location < 0x6000)
             {
-                mbc1.bankNumberHigh = value & 0x3;
+
                 if(mbc1.bankHighBehavior)
                 {
                     // SRAM Banking not implemented yet
                 }
                 else
                 {
+                    mbc1.bankNumberHigh = value & 0x3;
                     swapBank(1, mbc1.bankNumberHigh << 5 | mbc1.bankNumberLow);
                 }
 
@@ -578,9 +587,13 @@ void gbClass::handleMBC(uint16_t location, uint8_t value)
             else if(location < 0x8000)
             {
                 mbc1.bankHighBehavior = value & 0x1;
-                if(value & 0x1 == 0x1)
+                if((value & 0x1))
                 {
                     cout<<"SRAM Banking is not yet supported!"<<endl;
+                }
+                else
+                {
+                    swapBank(0, 0);
                 }
             }
         break;
@@ -588,7 +601,7 @@ void gbClass::handleMBC(uint16_t location, uint8_t value)
         case 3:
             if(location < 0x2000)
             {
-                if(value & 0xF == 0xA)
+                if((value & 0xF) == 0xA)
                 {
                     mbc3.onSRAM = true;
                 }
@@ -745,7 +758,7 @@ uint8_t gbClass::readRAM(uint16_t location)
                     break;
 
                     case 3:
-                        return SRAM[mbc3.bankNumberRAM][location & 0x1FFF];
+                        return SRAM[mbc3.bankNumberRAM & 0xF][location & 0x1FFF];
                     break;
                 }
 
@@ -796,6 +809,7 @@ uint8_t gbClass::readRAM(uint16_t location)
     {
         return IE;
     }
+    return unknownRamReturn;
 }
 
 void gbClass::opLD16A(uint8_t opcode)
@@ -2383,6 +2397,7 @@ void gbClass::checkInterrupt()
         SP--;
         writeRAM(SP, PC);
         PC = jump;
+        IME = false;
     }
 }
 
@@ -2407,7 +2422,7 @@ void gbClass::swapBankOld(uint8_t sectionNum, uint8_t bankNum)
 
 void gbClass::swapBank(uint8_t sectionNum, uint8_t bankNum)
 {
-    uint8_t romSize;
+    uint16_t romSize;
     if(ROMFILE[0x148] > 0x9)
     {
         romSize = 1023;
@@ -2416,10 +2431,10 @@ void gbClass::swapBank(uint8_t sectionNum, uint8_t bankNum)
     {
         romSize = romSizeLookup[ROMFILE[0x148]];
     }
-    while(bankNum > romSize)
-    {
-        bankNum -= romSize;
-    }
+    //cout<<"Section Num: "<<std::hex<<(uint16_t)sectionNum<<endl;
+    //cout<<"Bank Num: "<<std::hex<<(uint16_t)bankNum<<endl;
+
+    bankNum &= romSize;
     memcpy(ROM[sectionNum], &ROMFILE[0x4000 * bankNum], 0x4000);
 }
 
@@ -2452,7 +2467,7 @@ uint8_t gbClass::accessIO(uint8_t port, uint8_t value, bool write)
                 }
                 JOYP2 &= 0x30;
                 JOYP2 |= (JOYP & 0xF);
-                return JOYP2;
+                return JOYP2 | 0xC0;
             }
             else
             {
@@ -2500,33 +2515,35 @@ uint8_t gbClass::accessIO(uint8_t port, uint8_t value, bool write)
             if(write)
             {
                 TAC = value;
+                TAC |= 0xF8;
             }
             else
             {
-                return TAC;
+                return TAC |= 0xF8;
             }
         break;
 
         case 0x0F:
             if(write)
             {
-                IF = value;
+                IF = value | 0xE0;
             }
             else
             {
-                return IF;
+                return IF | 0xE0;
             }
         break;
 
         case 0x10:
             if(!write)
             {
-                return NR10;
+                return NR10 |= 0x80;
             }
             else
             {
                 freqTimerChangedSQ1 = true;
                 NR10 = value;
+                NR10 |= 0x80;
             }
         break;
 
@@ -2574,6 +2591,153 @@ uint8_t gbClass::accessIO(uint8_t port, uint8_t value, bool write)
             }
         break;
 
+        case 0x16:
+            if(!write)
+            {
+                return NR21;
+            }
+            else
+            {
+                NR21 = value;
+            }
+        break;
+
+        case 0x17:
+            if(!write)
+            {
+                return NR22;
+            }
+            else
+            {
+                NR22 = value;
+            }
+        break;
+
+        case 0x18:
+            if(!write)
+            {
+                return NR23;
+            }
+            else
+            {
+                NR23 = value;
+            }
+        break;
+
+        case 0x19:
+            if(!write)
+            {
+                return NR24;
+            }
+            else
+            {
+                NR24 = value;
+            }
+        break;
+
+        case 0x1A:
+            if(!write)
+            {
+                return NR30;
+            }
+            else
+            {
+                NR30 = value;
+            }
+        break;
+        case 0x1B:
+            if(!write)
+            {
+                return NR31;
+            }
+            else
+            {
+                NR31 = value;
+            }
+        break;
+        case 0x1C:
+            if(!write)
+            {
+                return NR32;
+            }
+            else
+            {
+                NR32 = value;
+            }
+        break;
+        case 0x1D:
+            if(!write)
+            {
+                return NR33;
+            }
+            else
+            {
+                NR33 = value;
+            }
+        break;
+        case 0x1E:
+            if(!write)
+            {
+                return NR34;
+            }
+            else
+            {
+                NR34 = value;
+            }
+        break;
+
+        case 0x20:
+            if(!write)
+            {
+                return NR41;
+            }
+            else
+            {
+                NR41 = value;
+            }
+        break;
+        case 0x21:
+            if(!write)
+            {
+                return NR42;
+            }
+            else
+            {
+                NR42 = value;
+            }
+        break;
+        case 0x22:
+            if(!write)
+            {
+                return NR43;
+            }
+            else
+            {
+                NR43 = value;
+            }
+        break;
+        case 0x23:
+            if(!write)
+            {
+                return NR44;
+            }
+            else
+            {
+                NR44 = value;
+            }
+        break;
+
+        case 0x30 ... 0x3F:
+            if(!write)
+            {
+                return WAVERAM[port & 0xF];
+            }
+            else
+            {
+                WAVERAM[port & 0xF] = value;
+            }
+        break;
+
         case 0x40:
             if(!write)
             {
@@ -2581,6 +2745,14 @@ uint8_t gbClass::accessIO(uint8_t port, uint8_t value, bool write)
             }
             else
             {
+                if(LCDC & 0x80)
+                {
+                    // If we're turning off the LCD
+                    if(!(value & 0x80))
+                    {
+                        LY = 0;
+                    }
+                }
                 LCDC = value;
             }
         break;
@@ -2588,11 +2760,12 @@ uint8_t gbClass::accessIO(uint8_t port, uint8_t value, bool write)
         case 0x41:
             if(!write)
             {
-                return STAT;
+                return STAT |= 0x80;
             }
             else
             {
                 STAT = value & 0xF8;
+                STAT |= 0x80;
             }
         break;
 
@@ -2710,11 +2883,13 @@ uint8_t gbClass::accessIO(uint8_t port, uint8_t value, bool write)
 
 
         default:
-            return 0xFF;
+            //cout<<"Accessed Unknown IO Register 0x" <<std::hex<<(uint16_t)port<<endl;
+            //cout<<"Write Bit is "<<std::hex<<write<<endl;
+            return unknownRamReturn;
         break;
     }
 
-    return 0xFF;
+    return unknownRamReturn;
 }
 
 uint16_t timerClock[4] = {
@@ -2733,10 +2908,9 @@ void gbClass::runTimer()
         {
             TIMA++;
 
-            if(TIMA == 0x100)
+            if(TIMA >= 0x100)
             {
-
-                setIFBit(0x4);
+                IF |= 0x4;
                 TIMA = TMA;
             }
             currentTimerDifference -= timerClock[TAC & 0x3];

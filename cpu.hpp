@@ -19,6 +19,8 @@ struct MBC3Struct {
 
 class gbClass {
     public:
+        int audioDumpEnable;
+
         bool runGB;
         uint8_t A, B, C, D, E, F, H, L;
         uint16_t PC, SP;
@@ -86,6 +88,23 @@ class gbClass {
         uint8_t NR12;
         uint8_t NR13;
         uint8_t NR14;
+
+        uint8_t NR21;
+        uint8_t NR22;
+        uint8_t NR23;
+        uint8_t NR24;
+
+        uint8_t NR30;
+        uint8_t NR31;
+        uint8_t NR32;
+        uint8_t NR33;
+        uint8_t NR34;
+        uint8_t WAVERAM[0x10];
+
+        uint8_t NR41;
+        uint8_t NR42;
+        uint8_t NR43;
+        uint8_t NR44;
 
         uint8_t LCDC; // 0xFF40
         uint8_t STAT; // 0xFF41

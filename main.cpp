@@ -11,12 +11,14 @@ using namespace std;
 
 /*
     Todo before 3DS Port:
+
+    Todo Later:
         * Implement MBC 5???
-        * Implement Audio
+        * Implement Length Counter???
         * Maybe GBC???
 */
 
-int main()
+int main(int argc, char**argv)
 {
     int FPS = 0;
     time_t seconds = time(NULL);
@@ -26,7 +28,7 @@ int main()
     display.gb = &gb;
     audio.gb = &gb;
 
-    gb.loadROM("roms/kirby.gb");
+    gb.loadROM("roms/pokeTCG.gbc");
 
     string saveName;
     saveName += "save/";
@@ -56,8 +58,6 @@ int main()
     }
 
     audio.sdlAudioInit();
-
-    char step;
 
     bool breakpoint = false;
 
@@ -94,28 +94,43 @@ int main()
         gb.cyclesTotalPrev = gb.cyclesTotal;
         gb.cyclesTotal += (gb.cyclesScanline - prevCycles);
 
-        // Todo: Put all of this into it's own function
+        // Todo: Put all of this into it's own function (or make a scheduler for this)
         audio.sq1Timer += (gb.cyclesScanline - prevCycles);
+        audio.sq2Timer += (gb.cyclesScanline - prevCycles);
+        audio.wavTimer += (gb.cyclesScanline - prevCycles);
+        audio.noiTimer += (gb.cyclesScanline - prevCycles);
         audio.mainAudioSampleTimer = (gb.cyclesScanline - prevCycles);
         audio.sq1FreqTimer += (gb.cyclesScanline - prevCycles);
+        audio.sq1EnvTimer += (gb.cyclesScanline - prevCycles);
+        audio.sq2EnvTimer += (gb.cyclesScanline - prevCycles);
+        audio.noiEnvTimer += (gb.cyclesScanline - prevCycles);
 
         gb.JOYP &= 0xF;
         gb.JOYP |= (gb.JOYP2 & 0x30);
 
 
         gb.runTimer();
+        display.handleModeTimings();
         gb.checkInterrupt();
         audio.handleAudio();
 
 
         if(gb.cyclesScanline >= 456) // New Scanline
         {
-            gb.STAT &= ~0x3;
-            gb.LY++;
+            //gb.STAT &= ~0x3;
+            display.renderScanline();
+            // This could cause jank with timing / ppu (NEED TO FIX LATER)
+            if(gb.LCDC & 0x80)
+            {
+                gb.LY++;
+            }
             gb.cyclesScanline -= 456;
             if(gb.LY == 144)
             {
-                gb.setIFBit(0x1);
+                if(gb.LCDC & 0x80)
+                {
+                    gb.setIFBit(0x1);
+                }
                 FPS++;
                 if(seconds != time(NULL))
                 {
@@ -138,10 +153,11 @@ int main()
                 display.handleEvents();
                 //audio.sendAudio();
             }
-            if(gb.LY == gb.LYC - 1)
+
+            if(gb.LY == gb.LYC)
             {
-                gb.STAT |= 0x6;
-                if(gb.STAT & 0x40)
+                gb.STAT |= 0x4;
+                if((gb.STAT & 0x40) && (gb.LCDC & 0x80))
                 {
                     gb.setIFBit(0x2);
                 }
@@ -150,7 +166,8 @@ int main()
             {
                 gb.STAT &= ~0x4;
             }
-            display.renderScanline();
+
+
         }
     }
 
