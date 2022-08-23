@@ -19,16 +19,12 @@ int gbDisplay::initSDL2()
         std::cout << "Failed to init sdl: " << SDL_GetError() << std::endl;
         return 1;
     }
-    win = SDL_CreateWindow("nopGB R2 Speedrun", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1920, 1080, SDL_WINDOW_RESIZABLE);
+    win = SDL_CreateWindow("nopGB R2", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 160 * 3, 144 * 3, SDL_WINDOW_RESIZABLE);
     render = SDL_CreateRenderer(win, 1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
     tex = SDL_CreateTexture(render, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, 160, 144);
     SDL_RenderSetScale(render, 3, 3);
     SDL_RendererInfo info;
     SDL_GetRendererInfo(render, &info);
-    for(int i = 0; i < info.num_texture_formats; i++)
-    {
-        cout<<"Tex Format: "<<info.texture_formats[i]<<endl;
-    }
     return 0;
 }
 
@@ -423,53 +419,6 @@ void gbDisplay::renderScanline()
     }
 }
 
-void gbDisplay::renderTilemapFrame()
-{
-    cout<<"LCDC: "<<std::hex<<(int)gb->LCDC<<endl;
-    uint8_t bgpIndex = gb->BGP;
-    SDL_SetRenderDrawColor(render, 0, 0, 255, 0);
-    SDL_RenderClear(render);
-    for(int y = 0; y < 144 / 8; y++)
-    {
-        for(int x = 0; x < 160 / 8; x++)
-        {
-
-            uint16_t locationVRAM = 0x9800 + (0x400 * ((gb->LCDC >> 3) & 0x1)) + (x) + (y * 32);
-            uint8_t index = gb->readRAM(locationVRAM);
-            uint16_t locationTile = 0x8000 + index * 16;
-            if((!(gb->LCDC & 0x10)) && index < 0x80)
-            {
-                locationTile += 0x1000;
-            }
-
-            for(int yT = 0; yT < 8; yT++)
-            {
-                for(int xT = 0; xT < 8; xT++)
-                {
-                    uint16_t lineData;
-                    lineData = (gb->readRAM(locationTile + (yT * 2) + 1) << 8) | gb->readRAM(locationTile + yT * 2);
-
-                    uint8_t blackWhiteColor = (((lineData >> (7 - xT)) & 0x1) << 1) | ((lineData >> (7 - xT) + 8) & 0x1);
-
-                    blackWhiteColor = (bgpIndex >> (blackWhiteColor * 2)) & 0x3;
-
-                    framebuffer[(y * 8) + yT][(x * 8) + xT] = (gbColorLookup[blackWhiteColor]);
-                }
-            }
-        }
-    }
-}
-
-void gbDisplay::renderFullFrame()
-{
-    renderTilemapFrame();
-    renderSprites();
-
-    SDL_UpdateTexture(tex, NULL, framebuffer, 160 * 4);
-    SDL_RenderCopy(render, tex, NULL, NULL);
-    SDL_RenderPresent(render);
-}
-
 void gbDisplay::setWindowTitle(const char* title)
 {
     SDL_SetWindowTitle(win, title);
@@ -584,75 +533,17 @@ void gbDisplay::handleEvents()
     }
 }
 
-void gbDisplay::handleModeTimings()
+void gbDisplay::updateFPS()
 {
-    uint8_t prevStat = gb->STAT;
-    if(gb->LY >= 144)
+    FPS++;
+    if(seconds != time(NULL))
     {
-        gb->STAT &= 0xFC;
-        gb->STAT |= 0x1;
-        return;
-    }
-    // STAT TIMINGS
-    // These timings are an approximation, as i can't seem to find documentation for this.
-    if((gb->cyclesScanline) < (84) && (gb->LCDC & 0x80) == 0x80) // Mode 2
-    {
-        gb->STAT &= 0xFC;
-        gb->STAT |= 0x2;
-        /*
-        if((io.LCDCS & 0x20) != 0 && (cpu.prevCycles % cyclesPerScanline) >= 84)
-        {
-            io.IF = io.IF | 0x2;
-            cpu.handleInterrupts();
-        }
-        */
-    }
-    else if((gb->cyclesScanline) < (375) && (gb->LCDC & 0x80) == 0x80) // Mode 3
-    {
-        gb->STAT &= 0xFC;
-        gb->STAT |= 0x3;
-    }
-    else if((gb->cyclesScanline) <= (456) && (gb->LCDC & 0x80) == 0x80) // Mode 0
-    {
-        gb->STAT &= 0xFC;
-        gb->STAT |= 0x0;
-        /*
-        if((io.LCDCS & 0x8) != 0 && (cpu.prevCycles % cyclesPerScanline) < 375)
-        {
-            io.IF = io.IF | 0x2;
-            cpu.handleInterrupts();
-        }
-        */
-    }
-
-    if(!(gb->LCDC & 0x80))
-    {
-        gb->STAT &= 0xFC;
-        gb->STAT |= 0x0;
-    }
-    if(prevStat != gb->STAT)
-    {
-        // Mode Changed
-        if((gb->STAT & 0x3) == 0)
-        {
-            if(gb->STAT & 0x8)
-            {
-                gb->IF |= 0x2;
-            }
-        }
-        else if((gb->STAT & 0x3) == 1)
-        {
-            if(gb->STAT & 0x10)
-            {
-                gb->IF |= 0x2;
-            }
-        }
-        else if((gb->STAT & 0x3) == 2)
-        {
-            if(gb->STAT & 0x20)
-            {
-                gb->IF |= 0x2;
-            }
-        }
+        string windowTitle = "nopGB R2: ";
+        std::stringstream ss;
+        ss << FPS;
+        windowTitle += ss.str();
+        setWindowTitle(windowTitle.c_str());
+        seconds = time(NULL);
+        FPS = 0;
     }
 }

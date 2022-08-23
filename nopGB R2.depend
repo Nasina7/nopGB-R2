@@ -43,3 +43,49 @@
 	<iostream>
 	<fstream>
 
+1656791130 source:/home/zach/cpp_projects/nopGB_R2/scheduler/scheduler.c
+	"scheduler.h"
+	<stdio.h>
+
+1656791124 /home/zach/cpp_projects/nopGB_R2/scheduler/scheduler.h
+	<stdint.h>
+	<stdbool.h>
+
+1661275412 source:/home/zach/cpp_projects/nopGB_R2/audio.cpp
+	"audio.hpp"
+	<iostream>
+	<fstream>
+
+1661274971 /home/zach/cpp_projects/nopGB_R2/audio.hpp
+	<SDL2/SDL.h>
+	"cpu.hpp"
+
+1661276186 /home/zach/cpp_projects/nopGB_R2/cpu.hpp
+	"audio.hpp"
+
+1661276232 source:/home/zach/cpp_projects/nopGB_R2/cpu.cpp
+	<iostream>
+	<fstream>
+	"cpu.hpp"
+	<string.h>
+	<time.h>
+
+1661276235 source:/home/zach/cpp_projects/nopGB_R2/main.cpp
+	<iostream>
+	"cpu.hpp"
+	"display.hpp"
+	<string>
+	<sstream>
+	<fstream>
+	"audio.hpp"
+
+1661276182 /home/zach/cpp_projects/nopGB_R2/display.hpp
+	<SDL2/SDL.h>
+	"cpu.hpp"
+	<time.h>
+
+1661276688 source:/home/zach/cpp_projects/nopGB_R2/display.cpp
+	"display.hpp"
+	<iostream>
+	<bits/stdc++.h>
+

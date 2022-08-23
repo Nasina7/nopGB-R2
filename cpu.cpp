@@ -2,6 +2,7 @@
 #include <fstream>
 #include "cpu.hpp"
 #include <string.h>
+#include <time.h>
 
 using namespace std; // Todo: Remove This
 
@@ -22,8 +23,15 @@ bool gbClass::loadROM(const char* filename)
 {
     ifstream openRom(filename, std::ifstream::binary);
 
+    if(!openRom.is_open())
+    {
+        cout<<"Could not open "<<filename<<endl;
+        return 0;
+    }
+
     openRom.seekg(0, openRom.end);
     romLength = openRom.tellg();
+    cout<<romLength<<endl;
     openRom.seekg(0, openRom.beg);
     ROMFILE = new uint8_t [romLength];
     openRom.read((char*)ROMFILE, romLength);
@@ -101,6 +109,20 @@ bool gbClass::loadROM(const char* filename)
             mbc3.timerExists = false;
         break;
 
+        case 0x19:
+        case 0x1C:
+            MBC = 5;
+            sramExists = false;
+        break;
+
+        case 0x1A:
+        case 0x1B:
+        case 0x1D:
+        case 0x1E:
+            MBC = 5;
+            sramExists = true;
+        break;
+
         default:
             cout<<"Unsupported MBC: "<<std::hex<<(int)ROMFILE[0x147]<<endl;
             MBC = 3; // Assume MBC 3
@@ -131,12 +153,17 @@ void gbClass::resetGB()
     IE = 0;
     IF = 1;
     runGB = true;
+    DIV = 0xAB;
+    divTimer = 256 - 52;
     BGP = 0xFC;
     OBP0 = 0xFF;
     OBP1 = 0xFF;
     JOYP = 0xFF;
     JOYP2 = 0xFF;
     JOYPR = 0xFF;
+    unkFF72 = 0xFF;
+    unkFF73 = 0xFF;
+    unkFF75 = 0xFF;
 
     TAC = 0xF8;
     TIMA = 0;
@@ -146,6 +173,23 @@ void gbClass::resetGB()
     mbc1.bankNumberHigh = 0;
     mbc1.bankNumberLow = 1;
     mbc1.onSRAM = false;
+
+    srand(time(NULL));
+
+    memcpy(VRAM[0], initVRAM, 0x2000);
+
+    for(int i = 0; i < 8; i++)
+    {
+        for(int x = 0; x < 0x1000; x++)
+        {
+            WRAM[i][x] = rand() & 0xFF;
+        }
+    }
+
+    for(int x = 0; x < 0x80; x++)
+    {
+        HRAM[x] = rand() & 0xFF;
+    }
 }
 
 #define timingOverride 0
@@ -625,6 +669,35 @@ void gbClass::handleMBC(uint16_t location, uint8_t value)
                 // RTC Latching not yet implemented
             }
         break;
+
+        case 5:
+            if(location < 0x2000)
+            {
+                if((value & 0xF) == 0xA)
+                {
+                    mbc5.onSRAM = true;
+                }
+                else
+                {
+                    mbc5.onSRAM = false;
+                }
+            }
+            else if(location < 0x3000)
+            {
+                mbc5.bankNumber = (mbc5.bankNumber & 0xFF00) | value;
+                swapBank(1, mbc5.bankNumber);
+
+            }
+            else if(location < 0x4000)
+            {
+                mbc5.bankNumber = ((value & 0x1) << 8) | (mbc5.bankNumber & 0xFF);
+                swapBank(1, mbc5.bankNumber);
+            }
+            else if(location < 0x6000)
+            {
+                mbc5.sramBankNumber = value & 0xF;
+            }
+        break;
     }
 }
 
@@ -675,7 +748,17 @@ void gbClass::writeRAM(uint16_t location, uint8_t value)
                     break;
 
                     case 3:
-                        SRAM[mbc3.bankNumberRAM & 0xF][location & 0x1FFF] = value;
+                        if(mbc3.onSRAM)
+                        {
+                            SRAM[mbc3.bankNumberRAM & 0xF][location & 0x1FFF] = value;
+                        }
+                    break;
+
+                    case 5:
+                        if(mbc5.onSRAM)
+                        {
+                            SRAM[mbc5.sramBankNumber & 0xF][location & 0x1FFF] = value;
+                        }
                     break;
                 }
             }
@@ -758,7 +841,25 @@ uint8_t gbClass::readRAM(uint16_t location)
                     break;
 
                     case 3:
-                        return SRAM[mbc3.bankNumberRAM & 0xF][location & 0x1FFF];
+                        if(mbc3.onSRAM)
+                        {
+                            return SRAM[mbc3.bankNumberRAM & 0xF][location & 0x1FFF];
+                        }
+                        else
+                        {
+                            return 0xFF;
+                        }
+                    break;
+
+                    case 5:
+                        if(mbc5.onSRAM)
+                        {
+                            return SRAM[mbc5.sramBankNumber & 0xF][location & 0x1FFF];
+                        }
+                        else
+                        {
+                            return 0xFF;
+                        }
                     break;
                 }
 
@@ -1882,6 +1983,7 @@ void gbClass::opUNK(uint8_t opcode)
 {
     // Uhoh
     cout<<"Unknown Opcode: 0x" << std::hex << (int)opcode << endl;
+    cout<<"PC: "<<std::hex<<(int)PC<<endl;
     runGB = false;
 }
 
@@ -2356,8 +2458,7 @@ void gbClass::checkInterrupt()
 {
     uint8_t jump, andValue;
     andValue = 0;
-    if((IE & IF & 0x1F) != 0x00)
-    {
+
         if(IF & 1 && IE & 1)
         {
             andValue = 0xFE;
@@ -2388,7 +2489,7 @@ void gbClass::checkInterrupt()
             jump = 0x60;
             haltMode = false;
         }
-    }
+
     if(IME && andValue != 0)
     {
         IF &= andValue;
@@ -2420,7 +2521,7 @@ void gbClass::swapBankOld(uint8_t sectionNum, uint8_t bankNum)
     memcpy(ROM[sectionNum], &ROMFILE[0x4000 * bankNum], 0x4000);
 }
 
-void gbClass::swapBank(uint8_t sectionNum, uint8_t bankNum)
+void gbClass::swapBank(uint8_t sectionNum, uint16_t bankNum)
 {
     uint16_t romSize;
     if(ROMFILE[0x148] > 0x9)
@@ -2433,8 +2534,8 @@ void gbClass::swapBank(uint8_t sectionNum, uint8_t bankNum)
     }
     //cout<<"Section Num: "<<std::hex<<(uint16_t)sectionNum<<endl;
     //cout<<"Bank Num: "<<std::hex<<(uint16_t)bankNum<<endl;
-
     bankNum &= romSize;
+
     memcpy(ROM[sectionNum], &ROMFILE[0x4000 * bankNum], 0x4000);
 }
 
@@ -2478,14 +2579,11 @@ uint8_t gbClass::accessIO(uint8_t port, uint8_t value, bool write)
         case 0x04:
             if(write)
             {
-                DIV = ((cyclesTotal / 274) & 0xFF);
+                DIV = 0;
             }
             else
             {
-                // This calculates what DIV should be at.  Here DIV is actually used as an offset.
-                // Note: This is not fully accurate, but seeing as the goal is speed and not accuracy, this is a good tradeoff
-                return (int)((cyclesTotal / 274.3125) - DIV) & 0xFF;
-                //return 0xFF;
+                return DIV;
             }
         break;
 
@@ -2537,204 +2635,204 @@ uint8_t gbClass::accessIO(uint8_t port, uint8_t value, bool write)
         case 0x10:
             if(!write)
             {
-                return NR10 |= 0x80;
+                return audio->NR10 |= 0x80;
             }
             else
             {
-                freqTimerChangedSQ1 = true;
-                NR10 = value;
-                NR10 |= 0x80;
+                audio->freqTimerChangedSQ1 = true;
+                audio->NR10 = value;
+                audio->NR10 |= 0x80;
             }
         break;
 
         case 0x11:
             if(!write)
             {
-                return NR11;
+                return audio->NR11;
             }
             else
             {
-                NR11 = value;
+                audio->NR11 = value;
             }
         break;
 
         case 0x12:
             if(!write)
             {
-                return NR12;
+                return audio->NR12;
             }
             else
             {
-                NR12 = value;
+                audio->NR12 = value;
             }
         break;
 
         case 0x13:
             if(!write)
             {
-                return NR13;
+                return audio->NR13;
             }
             else
             {
-                NR13 = value;
+                audio->NR13 = value;
             }
         break;
 
         case 0x14:
             if(!write)
             {
-                return NR14;
+                return audio->NR14;
             }
             else
             {
-                NR14 = value;
+                audio->NR14 = value;
             }
         break;
 
         case 0x16:
             if(!write)
             {
-                return NR21;
+                return audio->NR21;
             }
             else
             {
-                NR21 = value;
+                audio->NR21 = value;
             }
         break;
 
         case 0x17:
             if(!write)
             {
-                return NR22;
+                return audio->NR22;
             }
             else
             {
-                NR22 = value;
+                audio->NR22 = value;
             }
         break;
 
         case 0x18:
             if(!write)
             {
-                return NR23;
+                return audio->NR23;
             }
             else
             {
-                NR23 = value;
+                audio->NR23 = value;
             }
         break;
 
         case 0x19:
             if(!write)
             {
-                return NR24;
+                return audio->NR24;
             }
             else
             {
-                NR24 = value;
+                audio->NR24 = value;
             }
         break;
 
         case 0x1A:
             if(!write)
             {
-                return NR30;
+                return audio->NR30 | 0x7F;
             }
             else
             {
-                NR30 = value;
+                audio->NR30 = value | 0x7F;
             }
         break;
         case 0x1B:
             if(!write)
             {
-                return NR31;
+                return audio->NR31;
             }
             else
             {
-                NR31 = value;
+                audio->NR31 = value;
             }
         break;
         case 0x1C:
             if(!write)
             {
-                return NR32;
+                return audio->NR32 | 0x9F;
             }
             else
             {
-                NR32 = value;
+                audio->NR32 = value | 0x9F;
             }
         break;
         case 0x1D:
             if(!write)
             {
-                return NR33;
+                return audio->NR33;
             }
             else
             {
-                NR33 = value;
+                audio->NR33 = value;
             }
         break;
         case 0x1E:
             if(!write)
             {
-                return NR34;
+                return audio->NR34;
             }
             else
             {
-                NR34 = value;
+                audio->NR34 = value;
             }
         break;
 
         case 0x20:
             if(!write)
             {
-                return NR41;
+                return audio->NR41 | 0xC0;
             }
             else
             {
-                NR41 = value;
+                audio->NR41 = value | 0xC0;
             }
         break;
         case 0x21:
             if(!write)
             {
-                return NR42;
+                return audio->NR42;
             }
             else
             {
-                NR42 = value;
+                audio->NR42 = value;
             }
         break;
         case 0x22:
             if(!write)
             {
-                return NR43;
+                return audio->NR43;
             }
             else
             {
-                NR43 = value;
+                audio->NR43 = value;
             }
         break;
         case 0x23:
             if(!write)
             {
-                return NR44;
+                return audio->NR44 | 0x3F;
             }
             else
             {
-                NR44 = value;
+                audio->NR44 = value | 0x3F;
             }
         break;
 
         case 0x30 ... 0x3F:
             if(!write)
             {
-                return WAVERAM[port & 0xF];
+                return audio->WAVERAM[port & 0xF];
             }
             else
             {
-                WAVERAM[port & 0xF] = value;
+                audio->WAVERAM[port & 0xF] = value;
             }
         break;
 
@@ -2881,6 +2979,39 @@ uint8_t gbClass::accessIO(uint8_t port, uint8_t value, bool write)
             }
         break;
 
+        case 0x72:
+            if(!write)
+            {
+                return unkFF72;
+            }
+            else
+            {
+                unkFF72 = value;
+            }
+        break;
+
+        case 0x73:
+            if(!write)
+            {
+                return unkFF73;
+            }
+            else
+            {
+                unkFF73 = value;
+            }
+        break;
+
+        case 0x75:
+            if(!write)
+            {
+                return unkFF75 | 0x8F;
+            }
+            else
+            {
+                unkFF75 = value | 0x8F;
+            }
+        break;
+
 
         default:
             //cout<<"Accessed Unknown IO Register 0x" <<std::hex<<(uint16_t)port<<endl;
@@ -2890,6 +3021,65 @@ uint8_t gbClass::accessIO(uint8_t port, uint8_t value, bool write)
     }
 
     return unknownRamReturn;
+}
+
+void gbClass::handleModeTimings()
+{
+    uint8_t prevStat = STAT;
+    if(LY >= 144)
+    {
+        STAT &= 0xFC;
+        STAT |= 0x1;
+        return;
+    }
+    // STAT TIMINGS
+    // These timings are an approximation, as i can't seem to find documentation for this.
+    if((cyclesScanline) < (84) && (LCDC & 0x80) == 0x80) // Mode 2
+    {
+        STAT &= 0xFC;
+        STAT |= 0x2;
+    }
+    else if((cyclesScanline) < (375) && (LCDC & 0x80) == 0x80) // Mode 3
+    {
+        STAT &= 0xFC;
+        STAT |= 0x3;
+    }
+    else if((cyclesScanline) <= (456) && (LCDC & 0x80) == 0x80) // Mode 0
+    {
+        STAT &= 0xFC;
+        STAT |= 0x0;
+    }
+
+    if(!(LCDC & 0x80))
+    {
+        STAT &= 0xFC;
+        STAT |= 0x0;
+    }
+    if(prevStat != STAT)
+    {
+        // Mode Changed
+        if((STAT & 0x3) == 0)
+        {
+            if(STAT & 0x8)
+            {
+                IF |= 0x2;
+            }
+        }
+        else if((STAT & 0x3) == 1)
+        {
+            if(STAT & 0x10)
+            {
+                IF |= 0x2;
+            }
+        }
+        else if((STAT & 0x3) == 2)
+        {
+            if(STAT & 0x20)
+            {
+                IF |= 0x2;
+            }
+        }
+    }
 }
 
 uint16_t timerClock[4] = {

@@ -1,11 +1,15 @@
 #include <SDL2/SDL.h>
 #include "cpu.hpp"
+#include <time.h>
 
 class gbDisplay {
     public:
+        gbDisplay()
+        {
+           seconds = time(NULL);
+        }
         void renderFullFrame();
         int initSDL2();
-        void handleModeTimings();
         void setWindowTitle(const char* title);
         void handleEvents();
         void renderTilemapFrame();
@@ -14,6 +18,7 @@ class gbDisplay {
         void renderScanline();
         void renderTilemapScanline();
         void renderWindowScanline();
+        void updateFPS();
         gbClass* gb;
 
     private:
@@ -21,6 +26,9 @@ class gbDisplay {
         SDL_Renderer* render;
         SDL_Texture* tex;
         SDL_Event e;
+
+        time_t seconds;
+        int FPS;
 
         uint8_t windowScanline;
 

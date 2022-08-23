@@ -30,7 +30,7 @@ void gbAudio::sendAudio()
     uint8_t audioBuffer[735];
 
     // 70224 total samples divided by samples needed
-    float scaleIndex = 70224.0f / 735.0f;
+    float scaleIndex = 836.0f / 735.0f;
     uint8_t sample = 0;
 
     for(int i = 0; i < 735; i++)
@@ -84,67 +84,70 @@ void gbAudio::sendAudio()
     {
         SDL_ClearQueuedAudio(dev);
     }
-    if(gb->audioDumpEnable > 0)
-    {
-        memcpy(audioDump[gb->audioDumpEnable - 1], audioBuffer, 735);
-        gb->audioDumpEnable++;
-        if(gb->audioDumpEnable == 61)
-        {
-            gb->audioDumpEnable = 0;
-            ofstream dump("audioDump.raw", std::ifstream::binary);
-
-            dump.write((char*)audioDump, 735 * 60);
-            dump.close();
-            cout<<"Audio Dumped!"<<endl;
-        }
-    }
     SDL_QueueAudio(dev, audioBuffer, 735);
 }
+
+// (NRx2 & 0x7) * 65835
+uint32_t envLookup[8] =
+{
+    0,
+    65835,
+    131670,
+    197505,
+    263340,
+    329175,
+    395010,
+    460845
+};
 
 void gbAudio::stepSQ1()
 {
     // SQ1 Frequency Sweep
-    if(gb->freqTimerChangedSQ1)
+    if(freqTimerChangedSQ1)
     {
-        gb->freqTimerChangedSQ1 = false;
+        freqTimerChangedSQ1 = false;
         sq1FreqTimer = 0;
     }
-
-    while(sq1FreqTimer >= pitchSweepSQ1[(gb->NR10 >> 4) & 0x7])
+    else
     {
-        sq1FreqTimer -= pitchSweepSQ1[(gb->NR10 >> 4) & 0x7];
-        uint16_t freqSweep = (((gb->NR14) & 0x7) << 8) | gb->NR13;
-        if(gb->NR10 & 0x8)
+        while(sq1FreqTimer >= pitchSweepSQ1[(NR10 >> 4) & 0x7])
         {
-            freqSweep = freqSweep - (freqSweep / pow(2, (gb->NR10 & 0x7)));
+            sq1FreqTimer -= pitchSweepSQ1[(NR10 >> 4) & 0x7];
+            uint16_t freqSweep = (((NR14) & 0x7) << 8) | NR13;
+            if(NR10 & 0x8)
+            {
+                freqSweep = freqSweep - (freqSweep / pow(2, (NR10 & 0x7)));
+            }
+            else
+            {
+                freqSweep = freqSweep + (freqSweep / pow(2, (NR10 & 0x7)));
+            }
+            // Todo: This shouldn't get written back to the I/O Regs
+            NR13 = freqSweep;
+            NR14 = freqSweep >> 8;
         }
-        else
-        {
-            freqSweep = freqSweep + (freqSweep / pow(2, (gb->NR10 & 0x7)));
-        }
-        // Todo: This shouldn't get written back to the I/O Regs
-        gb->NR13 = freqSweep;
-        gb->NR14 = freqSweep >> 8;
     }
 
+
+
     // SQ1 Envelope
-    if((gb->NR12 & 7) != 0)
+    if((NR12 & 7) != 0)
     {
-        while(sq1EnvTimer >= (gb->NR12 & 7)*65835)
+        while(sq1EnvTimer >= envLookup[(NR12 & 7)])
         {
-            sq1EnvTimer -= (gb->NR12 & 7)*65835;
-            uint8_t envUpdate = (gb->NR12) >> 4;
-            if((gb->NR12 & 0x8) && envUpdate < 0xF)
+            sq1EnvTimer -= envLookup[(NR12 & 7)];
+            uint8_t envUpdate = (NR12) >> 4;
+            if((NR12 & 0x8) && envUpdate < 0xF)
             {
                 envUpdate++;
             }
-            if(!(gb->NR12 & 0x8) && envUpdate != 0)
+            if(!(NR12 & 0x8) && envUpdate != 0)
             {
                 envUpdate--;
             }
             // Todo: This shouldn't get written back to the I/O Regs
-            gb->NR12 &= 0xF;
-            gb->NR12 |= (envUpdate << 4);
+            NR12 &= 0xF;
+            NR12 |= (envUpdate << 4);
         }
     }
     else
@@ -154,7 +157,7 @@ void gbAudio::stepSQ1()
 
 
     // SQ1
-    uint32_t freq = (((gb->NR14) & 0x7) << 8) | gb->NR13;
+    uint32_t freq = (((NR14) & 0x7) << 8) | NR13;
 
     freq = (2048-freq) * 4;
     while(sq1Timer >= freq)
@@ -165,31 +168,31 @@ void gbAudio::stepSQ1()
         {
             sq1DutyPos -= 8;
         }
-        sq1Value = (squareDutyCycle[gb->NR11 >> 6][sq1DutyPos]);
-        sq1Vol = (gb->NR12) >> 4;
+        sq1Value = (squareDutyCycle[NR11 >> 6][sq1DutyPos]);
+        sq1Vol = (NR12) >> 4;
     }
 }
 
 void gbAudio::stepSQ2()
 {
     // SQ1 Envelope
-    if((gb->NR22 & 7) != 0)
+    if((NR22 & 7) != 0)
     {
-        while(sq2EnvTimer >= (gb->NR22 & 7)*65835)
+        while(sq2EnvTimer >= envLookup[(NR22 & 7)])
         {
-            sq2EnvTimer -= (gb->NR22 & 7)*65835;
-            uint8_t envUpdate = (gb->NR22) >> 4;
-            if((gb->NR22 & 0x8) && envUpdate < 0xF)
+            sq2EnvTimer -= envLookup[(NR22 & 7)];
+            uint8_t envUpdate = (NR22) >> 4;
+            if((NR22 & 0x8) && envUpdate < 0xF)
             {
                 envUpdate++;
             }
-            if(!(gb->NR22 & 0x8) && envUpdate != 0)
+            if(!(NR22 & 0x8) && envUpdate != 0)
             {
                 envUpdate--;
             }
             // Todo: This shouldn't get written back to the I/O Regs
-            gb->NR22 &= 0xF;
-            gb->NR22 |= (envUpdate << 4);
+            NR22 &= 0xF;
+            NR22 |= (envUpdate << 4);
         }
     }
     else
@@ -198,7 +201,7 @@ void gbAudio::stepSQ2()
     }
 
     // SQ2
-    uint32_t freq = (((gb->NR24) & 0x7) << 8) | gb->NR23;
+    uint32_t freq = (((NR24) & 0x7) << 8) | NR23;
 
     freq = (2048-freq) * 4;
     while(sq2Timer >= freq)
@@ -209,8 +212,8 @@ void gbAudio::stepSQ2()
         {
             sq2DutyPos -= 8;
         }
-        sq2Value = (squareDutyCycle[gb->NR21 >> 6][sq2DutyPos]);
-        sq2Vol = (gb->NR22) >> 4;
+        sq2Value = (squareDutyCycle[NR21 >> 6][sq2DutyPos]);
+        sq2Vol = (NR22) >> 4;
     }
 }
 
@@ -224,20 +227,20 @@ uint8_t waveVolTable[4] =
 
 void gbAudio::stepWAV()
 {
-    if(!(gb->NR30 & 0x80))
+    if(!(NR30 & 0x80))
     {
         wavTimer = 0;
         return;
     }
 
-    if((gb->NR34 & 0x80))
+    if((NR34 & 0x80))
     {
         //wavDutyPos = 0;
-        //gb->NR34 &= 0x7F;
+        //NR34 &= 0x7F;
     }
 
     // SQ2
-    uint32_t freq = (((gb->NR34) & 0x7) << 8) | gb->NR33;
+    uint32_t freq = (((NR34) & 0x7) << 8) | NR33;
 
     freq = (2048-freq) * 2;
     while(wavTimer >= freq)
@@ -248,7 +251,7 @@ void gbAudio::stepWAV()
         {
             wavDutyPos -= 32;
         }
-        wavValue = (gb->WAVERAM[wavDutyPos >> 1]);
+        wavValue = (WAVERAM[wavDutyPos >> 1]);
 
         if(!(wavDutyPos & 0x1))
         {
@@ -260,7 +263,7 @@ void gbAudio::stepWAV()
             wavValue &= 0xF;
         }
 
-        uint8_t wavVol = (gb->NR32 >> 5) & 0x3;
+        uint8_t wavVol = (NR32 >> 5) & 0x3;
 
         wavValue = wavValue >> waveVolTable[wavVol];
         if(wavVol == 0)
@@ -269,8 +272,8 @@ void gbAudio::stepWAV()
         }
 
 
-        //wavValue = (squareDutyCycle[gb->NR21 >> 6][wavDutyPos]);
-        //sq2Vol = (gb->NR22) >> 4;
+        //wavValue = (squareDutyCycle[NR21 >> 6][wavDutyPos]);
+        //sq2Vol = (NR22) >> 4;
     }
 }
 
@@ -288,28 +291,28 @@ uint8_t noiClockLookup[8] =
 
 void gbAudio::stepNOI()
 {
-    if((gb->NR44 & 0x80))
+    if((NR44 & 0x80))
     {
-        gb->NR44 &= 0x7F;
+        NR44 &= 0x7F;
         LFSR = 0xFFFF;
     }
-    if((gb->NR42 & 7) != 0)
+    if((NR42 & 7) != 0)
     {
-        while(noiEnvTimer >= (gb->NR42 & 7)*65835)
+        while(noiEnvTimer >= (NR42 & 7)*65835)
         {
-            noiEnvTimer -= (gb->NR42 & 7)*65835;
-            uint8_t envUpdate = (gb->NR42) >> 4;
-            if((gb->NR42 & 0x8) && envUpdate < 0xF)
+            noiEnvTimer -= (NR42 & 7)*65835;
+            uint8_t envUpdate = (NR42) >> 4;
+            if((NR42 & 0x8) && envUpdate < 0xF)
             {
                 envUpdate++;
             }
-            if(!(gb->NR42 & 0x8) && envUpdate != 0)
+            if(!(NR42 & 0x8) && envUpdate != 0)
             {
                 envUpdate--;
             }
             // Todo: This shouldn't get written back to the I/O Regs
-            gb->NR42 &= 0xF;
-            gb->NR42 |= (envUpdate << 4);
+            NR42 &= 0xF;
+            NR42 |= (envUpdate << 4);
         }
     }
     else
@@ -317,12 +320,12 @@ void gbAudio::stepNOI()
         noiEnvTimer = 0;
     }
 
-    noiVol = ((gb->NR42 >> 4) & 0xF);
+    noiVol = ((NR42 >> 4) & 0xF);
 
 
-    uint8_t drof = gb->NR43 & 0x7;
+    uint8_t drof = NR43 & 0x7;
 
-    uint8_t scf = (gb->NR43 >> 4) & 0xF;
+    uint8_t scf = (NR43 >> 4) & 0xF;
 
     uint32_t freq = noiClockLookup[drof] << scf;
 
@@ -339,7 +342,7 @@ void gbAudio::stepNOI()
 
         LFSR |= (res & 0x1) << 14;
 
-        if(gb->NR43 & 0x8)
+        if(NR43 & 0x8)
         {
             LFSR &= ~(1 << 6);
             LFSR |= (res & 0x1) << 6;
@@ -353,21 +356,19 @@ void gbAudio::stepNOI()
 
 void gbAudio::handleAudio()
 {
-    stepSQ1();
-    stepSQ2();
-    stepWAV();
-    stepNOI();
+
 
     // Add samples to SQ1
-    for(int i = 0; i < mainAudioSampleTimer; i++)
+    while(mainAudioSampleTimer >= 1.0f)
     {
-        if(sampleTimer >= 70224)
+        stepSQ1();
+        stepSQ2();
+        stepWAV();
+        stepNOI();
+        if(sampleTimer >= 836)
         {
-            sampleTimer -= 70224;
+            sampleTimer -= 836;
             sendAudio();
-            //memset(SQ1, 0x7, sizeof(SQ1)); // Init the buffer to a default value for testing
-            //memset(SQ2, 0x7, sizeof(SQ2));
-            //memset(WAV, 0x7, sizeof(SQ2));
         }
         SQ1[sampleTimer].sample = sq1Value;
         SQ1[sampleTimer].volume = sq1Vol;
@@ -382,7 +383,21 @@ void gbAudio::handleAudio()
 
 
         sampleTimer++;
+        mainAudioSampleTimer--;
     }
+}
+
+void gbAudio::tickAudioTimers(uint32_t tickAmount)
+{
+    sq1Timer += tickAmount;
+    sq2Timer += tickAmount;
+    wavTimer += tickAmount;
+    noiTimer += tickAmount;
+    mainAudioSampleTimer += (float)tickAmount / 84.0f;
+    sq1FreqTimer += tickAmount;
+    sq1EnvTimer += tickAmount;
+    sq2EnvTimer += tickAmount;
+    noiEnvTimer += tickAmount;
 }
 
 void gbAudio::sdlAudioInit()
@@ -391,7 +406,7 @@ void gbAudio::sdlAudioInit()
     sq1DutyPos = 0;
     sq1FreqTimer = 0;
     want.freq = 44100;
-    want.format = AUDIO_S8;
+    want.format = AUDIO_U8;
     want.channels = 1;
     want.samples = 735;
     want.callback = NULL;

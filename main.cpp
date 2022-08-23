@@ -1,7 +1,6 @@
 #include <iostream>
 #include "cpu.hpp"
 #include "display.hpp"
-#include "time.h"
 #include <string>
 #include <sstream>
 #include <fstream>
@@ -12,23 +11,28 @@ using namespace std;
 /*
     Todo before 3DS Port:
 
-    Todo Later:
-        * Implement MBC 5???
-        * Implement Length Counter???
-        * Maybe GBC???
+    Todo (in order of importance):
+        * Implement GBC
+        * Debug Pokemon Blue Intro Song (I think my MBC 1 might be a bit broken)
+        * Implement Length Counter (APU)
+        * Implement MBC3 RTC
+        * Implement UI (ImGUI?)
+        * Implement Link Cable
 */
 
-int main(int argc, char**argv)
+int main(int argc, char** argv)
 {
-    int FPS = 0;
-    time_t seconds = time(NULL);
     gbClass gb;
     gbDisplay display;
 
     display.gb = &gb;
     audio.gb = &gb;
+    gb.audio = &audio;
 
-    gb.loadROM("roms/pokeTCG.gbc");
+    if(!gb.loadROM("roms/pokemon.gb"))
+    {
+        return 1;
+    }
 
     string saveName;
     saveName += "save/";
@@ -47,10 +51,22 @@ int main(int argc, char**argv)
     {
         readSav.read((char*)gb.SRAM, 0x2000 * 16);
     }
+    else
+    {
+        cout<<"No save for this game could be found, one will be made on exit."<<endl;
+    }
     readSav.close();
 
-    gb.resetGB();
+    ifstream vramInit("vramInit.bin", std::ifstream::binary);
 
+    if(vramInit.is_open())
+    {
+        vramInit.read((char*)gb.initVRAM, 0x2000);
+    }
+
+    vramInit.close();
+
+    gb.resetGB();
 
     if(display.initSDL2())
     {
@@ -67,22 +83,8 @@ int main(int argc, char**argv)
 
     while(gb.runGB)
     {
-        //cout<<"PC: 0x"<<std::hex<<(int)gb.PC<<endl;
-        //cout<<"SP: 0x"<<std::hex<<(int)gb.SP<<endl;
-        //cout<<"A: 0x"<<std::hex<<(int)gb.LY<<endl;
-        //cout<<"F: 0x"<<std::hex<<(int)gb.F<<endl;
-        //cout<<"HL: 0x"<<std::hex<<(int)(gb.H << 8 | gb.L)<<endl;
-        //cout<<"OPCODE: 0x"<<std::hex<<(int)gb.readRAM(gb.PC)<<endl;
-        if(gb.IE == 1)
-        {
-            breakpoint = true;
-            //cin>>step;
-        }
-        if(breakpoint == true)
-        {
-            //cin>>step;
-        }
         uint64_t prevCycles = gb.cyclesScanline;
+
         if(gb.haltMode == false)
         {
             gb.runOpcode();
@@ -91,35 +93,36 @@ int main(int argc, char**argv)
         {
             gb.cyclesScanline += 4;
         }
+
         gb.cyclesTotalPrev = gb.cyclesTotal;
         gb.cyclesTotal += (gb.cyclesScanline - prevCycles);
 
-        // Todo: Put all of this into it's own function (or make a scheduler for this)
-        audio.sq1Timer += (gb.cyclesScanline - prevCycles);
-        audio.sq2Timer += (gb.cyclesScanline - prevCycles);
-        audio.wavTimer += (gb.cyclesScanline - prevCycles);
-        audio.noiTimer += (gb.cyclesScanline - prevCycles);
-        audio.mainAudioSampleTimer = (gb.cyclesScanline - prevCycles);
-        audio.sq1FreqTimer += (gb.cyclesScanline - prevCycles);
-        audio.sq1EnvTimer += (gb.cyclesScanline - prevCycles);
-        audio.sq2EnvTimer += (gb.cyclesScanline - prevCycles);
-        audio.noiEnvTimer += (gb.cyclesScanline - prevCycles);
+        audio.tickAudioTimers(gb.cyclesScanline - prevCycles);
+        gb.divTimer += (gb.cyclesScanline - prevCycles);
+        while(gb.divTimer >= 256)
+        {
+            gb.divTimer -= 256;
+            gb.DIV++;
+        }
 
         gb.JOYP &= 0xF;
         gb.JOYP |= (gb.JOYP2 & 0x30);
 
-
         gb.runTimer();
-        display.handleModeTimings();
+        gb.handleModeTimings();
+
+        // Potential Optimization: Move this function call into only the spots that interact with IF, IE, or IME
         gb.checkInterrupt();
+
         audio.handleAudio();
 
 
         if(gb.cyclesScanline >= 456) // New Scanline
         {
-            //gb.STAT &= ~0x3;
+
             display.renderScanline();
             // This could cause jank with timing / ppu (NEED TO FIX LATER)
+            // Have PPU be tickable by cycles instead of this setup?
             if(gb.LCDC & 0x80)
             {
                 gb.LY++;
@@ -131,27 +134,13 @@ int main(int argc, char**argv)
                 {
                     gb.setIFBit(0x1);
                 }
-                FPS++;
-                if(seconds != time(NULL))
-                {
-                    string windowTitle = "nopGB R2: ";
-                    std::stringstream ss;
-                    ss << FPS;
-                    windowTitle += ss.str();
-                    display.setWindowTitle(windowTitle.c_str());
-                    seconds = time(NULL);
-                    FPS = 0;
-                }
+                display.updateFPS();
             }
-
 
             if(gb.LY == 154)
             {
                 gb.LY = 0;
-                //gb.IF &= 0xFE;
-                //display.renderFullFrame();
                 display.handleEvents();
-                //audio.sendAudio();
             }
 
             if(gb.LY == gb.LYC)
@@ -173,8 +162,12 @@ int main(int argc, char**argv)
 
 
     ofstream writeSav(saveName, std::ifstream::binary);
+    if(writeSav.is_open())
+    {
+        writeSav.write((char*)gb.SRAM, 0x2000 * 16);
+    }
 
-    writeSav.write((char*)gb.SRAM, 0x2000 * 16);
+
     writeSav.close();
 
     return 0;
